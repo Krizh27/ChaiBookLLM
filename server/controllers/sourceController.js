@@ -28,12 +28,13 @@ export const uploadSource = async (req, res) => {
     }
 
     // Verify parent notebook exists in PostgreSQL before attaching a source
-    const notebookCheck = await db.query('SELECT id FROM notebooks WHERE id = $1', [notebookId]);
+    const userId = req.auth?.userId;
+    const notebookCheck = await db.query('SELECT id FROM notebooks WHERE id = $1 AND user_id = $2', [notebookId, userId]);
     if (notebookCheck.rows.length === 0) {
       if (file && fs.existsSync(file.path)) {
         fs.unlinkSync(file.path); // Clean up orphaned uploaded file from disk
       }
-      return res.status(404).json({ error: 'Notebook not found' });
+      return res.status(404).json({ error: 'Notebook not found or access denied' });
     }
 
     let type = 'text';

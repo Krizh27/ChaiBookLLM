@@ -24,11 +24,13 @@ import notebookRoutes from './server/routes/notebookRoutes.js';
 import sourceRoutes from './server/routes/sourceRoutes.js';
 import chatRoutes from './server/routes/chatRoutes.js';
 import * as chatController from './server/controllers/chatController.js';
-// API Routes protected by Clerk Authentication
+import { requireNotebookOwner } from './server/middleware/authMiddleware.js';
+
+// API Routes protected by Clerk Authentication & Notebook Ownership
 app.use('/api/notebooks', requireAuth(), notebookRoutes);
-app.use('/api/notebooks/:notebookId/sources', requireAuth(), sourceRoutes);
-app.use('/api/notebooks/:notebookId/chat', requireAuth(), chatRoutes);
-app.post('/api/notebooks/:notebookId/roadmap', requireAuth(), chatController.createRoadmap);
+app.use('/api/notebooks/:notebookId/sources', requireAuth(), requireNotebookOwner, sourceRoutes);
+app.use('/api/notebooks/:notebookId/chat', requireAuth(), requireNotebookOwner, chatRoutes);
+app.post('/api/notebooks/:notebookId/roadmap', requireAuth(), requireNotebookOwner, chatController.createRoadmap);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

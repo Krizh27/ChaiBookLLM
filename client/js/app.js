@@ -21,6 +21,25 @@ async function initApp() {
             const signInContainer = document.getElementById('sign-in-container');
             const userButtonContainer = document.getElementById('user-button-container');
             
+            let currentUserId = Clerk.user ? Clerk.user.id : null;
+            if (Clerk.addListener) {
+                Clerk.addListener(({ user }) => {
+                    const newUserId = user ? user.id : null;
+                    if (newUserId !== currentUserId) {
+                        currentUserId = newUserId;
+                        if (!newUserId) {
+                            state.setNotebooks([]);
+                            if (authModal) {
+                                authModal.classList.remove('hidden');
+                                authModal.classList.add('flex');
+                            }
+                        } else {
+                            window.location.reload();
+                        }
+                    }
+                });
+            }
+
             if (!Clerk.user) {
                 console.log('User not authenticated. Mounting Sign In...');
                 if (authModal) {
@@ -49,6 +68,8 @@ async function initApp() {
         
         if (notebooks.length > 0) {
             state.setCurrentNotebook(notebooks[0].id);
+        } else {
+            state.setCurrentNotebook(null);
         }
     } catch (error) {
         console.error('Failed to initialize app:', error);

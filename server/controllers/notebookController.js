@@ -3,9 +3,12 @@ import db from '../../db.js';
 export const getNotebooks = async (req, res) => {
   try {
     const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+    }
     const result = await db.query(
-      'SELECT * FROM notebooks WHERE user_id = $1 OR user_id IS NULL ORDER BY created_at DESC',
-      [userId || null]
+      'SELECT * FROM notebooks WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
     );
     res.json(result.rows);
   } catch (error) {
@@ -18,9 +21,12 @@ export const getNotebookById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+    }
     const result = await db.query(
-      'SELECT * FROM notebooks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
-      [id, userId || null]
+      'SELECT * FROM notebooks WHERE id = $1 AND user_id = $2',
+      [id, userId]
     );
     
     if (result.rows.length === 0) {
@@ -38,13 +44,16 @@ export const createNotebook = async (req, res) => {
   try {
     const { name } = req.body;
     const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+    }
     if (!name) {
       return res.status(400).json({ error: 'Notebook name is required' });
     }
     
     const result = await db.query(
       'INSERT INTO notebooks (name, user_id) VALUES ($1, $2) RETURNING *',
-      [name, userId || null]
+      [name, userId]
     );
     
     res.status(201).json(result.rows[0]);
@@ -59,14 +68,17 @@ export const updateNotebook = async (req, res) => {
     const { id } = req.params;
     const { name } = req.body;
     const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+    }
     
     if (!name) {
       return res.status(400).json({ error: 'Notebook name is required' });
     }
     
     const result = await db.query(
-      'UPDATE notebooks SET name = $1 WHERE id = $2 AND (user_id = $3 OR user_id IS NULL) RETURNING *',
-      [name, id, userId || null]
+      'UPDATE notebooks SET name = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
+      [name, id, userId]
     );
     
     if (result.rows.length === 0) {
@@ -84,9 +96,12 @@ export const deleteNotebook = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: Authentication required' });
+    }
     const result = await db.query(
-      'DELETE FROM notebooks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING *',
-      [id, userId || null]
+      'DELETE FROM notebooks WHERE id = $1 AND user_id = $2 RETURNING *',
+      [id, userId]
     );
     
     if (result.rows.length === 0) {
