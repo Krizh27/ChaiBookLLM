@@ -63,10 +63,38 @@ export const uploadSource = async (req, res) => {
       let urlsToProcess = [url.trim()];
       if (url.includes('youtube.com/playlist') || url.includes('&list=')) {
         try {
+          let playlistId = '';
+          if (url.includes('list=')) {
+            const listParam = url.split('list=')[1];
+            playlistId = listParam ? listParam.split('&')[0] : '';
+          }
+
           const resp = await fetch(url);
           const html = await resp.text();
-          const matches = html.match(/watch\?v=([a-zA-Z0-9_-]{11})/g) || [];
-          const uniqueIds = [...new Set(matches.map(m => m.split('=')[1]))];
+          
+          let videoIds = [];
+          if (playlistId) {
+            const watchRegex = /watch\?v=([a-zA-Z0-9_-]{11})/g;
+            let match;
+            const escapedPlaylistId = playlistId.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const listRegex = new RegExp(`list(?:=|\\\\u003d|%3D)${escapedPlaylistId}`, 'i');
+
+            while ((match = watchRegex.exec(html)) !== null) {
+              const startIdx = match.index;
+              const endIdx = watchRegex.lastIndex;
+              
+              // Inspect a 300 character window surrounding the matched link to verify playlist membership
+              const windowStart = Math.max(0, startIdx - 100);
+              const windowEnd = Math.min(html.length, endIdx + 200);
+              const windowText = html.slice(windowStart, windowEnd);
+              
+              if (listRegex.test(windowText)) {
+                videoIds.push(match[1]);
+              }
+            }
+          }
+
+          const uniqueIds = [...new Set(videoIds)];
           if (uniqueIds.length > 0) {
             urlsToProcess = uniqueIds.slice(0, 15).map(id => `https://www.youtube.com/watch?v=${id}`);
           }
@@ -80,18 +108,31 @@ export const uploadSource = async (req, res) => {
       let primarySource = null;
       for (const singleUrl of urlsToProcess) {
         const urlType = (singleUrl.includes('youtube.com') || singleUrl.includes('youtu.be')) ? 'youtube' : 'url';
-        const result = await db.query(
-          `INSERT INTO sources (notebook_id, type, title, file_path_or_url, indexing_status) 
-           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-          [notebookId, urlType, singleUrl, singleUrl, 'pending']
-        );
-        const sourceRow = result.rows[0];
-        if (!primarySource) primarySource = sourceRow;
         
-        // Trigger async indexing pipeline (fire-and-forget)
-        processSource(notebookId, sourceRow.id).catch(err => {
-          console.error('Unhandled error in processSource:', err);
-        });
+        // Prevent duplicate source records within the current notebook
+        const checkResult = await db.query(
+          'SELECT * FROM sources WHERE notebook_id = $1 AND file_path_or_url = $2',
+          [notebookId, singleUrl]
+        );
+
+        let sourceRow;
+        if (checkResult.rows.length > 0) {
+          sourceRow = checkResult.rows[0];
+        } else {
+          const result = await db.query(
+            `INSERT INTO sources (notebook_id, type, title, file_path_or_url, indexing_status) 
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [notebookId, urlType, singleUrl, singleUrl, 'pending']
+          );
+          sourceRow = result.rows[0];
+          
+          // Trigger async indexing pipeline (fire-and-forget)
+          processSource(notebookId, sourceRow.id).catch(err => {
+            console.error('Unhandled error in processSource:', err);
+          });
+        }
+
+        if (!primarySource) primarySource = sourceRow;
       }
 
       return res.status(202).json(primarySource || { error: 'No valid URL found' });
