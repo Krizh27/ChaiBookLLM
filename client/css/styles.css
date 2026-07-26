@@ -142,3 +142,24 @@
     justify-content: space-between;
 }
 
+/* Mobile Responsive Overrides */
+@media (max-width: 768px) {
+    .flip-card {
+        height: 160px;
+    }
+    
+    #citation-modal .max-w-5xl {
+        height: 92vh;
+        max-height: 92vh;
+        margin: 0.5rem;
+    }
+    
+    nav.overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    button, a, input, select {
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+

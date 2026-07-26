@@ -34,6 +34,11 @@ const elements = {
     studyQuestionsList: document.getElementById('study-questions-list'),
     studyFlashcardsGrid: document.getElementById('study-flashcards-grid'),
     shuffleCardsBtn: document.getElementById('shuffle-cards-btn'),
+    // Mobile Responsive Layout Elements
+    appSidebar: document.getElementById('app-sidebar'),
+    mobileSidebarToggle: document.getElementById('mobile-sidebar-toggle'),
+    closeSidebarBtn: document.getElementById('close-sidebar-btn'),
+    sidebarBackdrop: document.getElementById('sidebar-backdrop'),
     // Roadmap Elements
     roadmapTopic: document.getElementById('roadmap-topic'),
     roadmapKnowledge: document.getElementById('roadmap-knowledge'),
@@ -47,6 +52,20 @@ const elements = {
 
 export const ui = {
     pollingInterval: null,
+
+    toggleMobileSidebar(show = null) {
+        if (!elements.appSidebar || !elements.sidebarBackdrop) return;
+        const isHidden = elements.appSidebar.classList.contains('-translate-x-full');
+        const shouldShow = show !== null ? show : isHidden;
+        
+        if (shouldShow) {
+            elements.appSidebar.classList.remove('-translate-x-full');
+            elements.sidebarBackdrop.classList.remove('hidden');
+        } else {
+            elements.appSidebar.classList.add('-translate-x-full');
+            elements.sidebarBackdrop.classList.add('hidden');
+        }
+    },
 
     showToast(message, type = 'error') {
         const container = document.getElementById('toast-container');
@@ -168,6 +187,16 @@ export const ui = {
     },
 
     init() {
+        if (elements.mobileSidebarToggle) {
+            elements.mobileSidebarToggle.addEventListener('click', () => this.toggleMobileSidebar(true));
+        }
+        if (elements.closeSidebarBtn) {
+            elements.closeSidebarBtn.addEventListener('click', () => this.toggleMobileSidebar(false));
+        }
+        if (elements.sidebarBackdrop) {
+            elements.sidebarBackdrop.addEventListener('click', () => this.toggleMobileSidebar(false));
+        }
+
         elements.newNotebookBtn.addEventListener('click', async () => {
             const name = await this.showPrompt({
                 title: 'Create New Notebook',
@@ -381,6 +410,9 @@ export const ui = {
             span.className = 'truncate flex-1 text-sm flex items-center';
             span.addEventListener('click', () => {
                 state.setCurrentNotebook(notebook.id);
+                if (window.innerWidth < 768) {
+                    this.toggleMobileSidebar(false);
+                }
             });
 
             const editBtn = document.createElement('button');

@@ -34,21 +34,27 @@
         <div id="sign-in-container" class="w-full flex justify-center"></div>
     </div>
     
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-30 hidden md:hidden transition-opacity"></div>
+
     <!-- Sidebar -->
-    <aside class="w-72 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shadow-xl z-20">
-        <div class="p-5 border-b border-slate-800/80 flex justify-between items-center bg-slate-950/50 backdrop-blur">
+    <aside id="app-sidebar" class="fixed md:static inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out w-72 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shadow-2xl md:shadow-xl h-full">
+        <div class="p-4 sm:p-5 border-b border-slate-800/80 flex justify-between items-center bg-slate-950/50 backdrop-blur">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 via-purple-500 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-bold text-lg">
                     📚
                 </div>
                 <h1 class="text-xl font-extrabold font-heading tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">BookLLM</h1>
             </div>
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2">
                 <div id="user-button-container" class="flex items-center justify-center min-w-[32px] min-h-[32px]"></div>
                 <button id="new-notebook-btn" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-lg p-2 shadow-md shadow-indigo-500/25 transition duration-200 transform hover:scale-105 active:scale-95" title="Create New Notebook">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                     </svg>
+                </button>
+                <button id="close-sidebar-btn" class="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Close Menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
         </div>
@@ -90,47 +96,49 @@
 
         <!-- Notebook Workspace -->
         <div id="main-content" class="hidden flex-1 flex flex-col h-full bg-white z-10 overflow-hidden">
-            <header class="py-4 px-6 border-b border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <div class="flex items-center gap-2.5">
-                        <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50"></span>
-                        <h2 id="current-notebook-title" class="text-2xl font-bold font-heading tracking-tight text-white">Notebook Title</h2>
-                        <button id="rename-notebook-btn" class="inline-flex items-center justify-center px-2 py-1 ml-2 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-lg transition-all text-xs font-semibold border border-slate-700 hover:border-slate-500 shadow-xs cursor-pointer" title="Rename Notebook">
+            <header class="py-3 px-4 sm:py-4 sm:px-6 border-b border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <button id="mobile-sidebar-toggle" class="md:hidden p-2 text-slate-300 hover:text-white rounded-lg bg-slate-800/80 border border-slate-700/80 shadow-sm flex items-center justify-center shrink-0" title="Toggle Sidebar Menu">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </button>
+                        <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50 shrink-0"></span>
+                        <h2 id="current-notebook-title" class="text-xl sm:text-2xl font-bold font-heading tracking-tight text-white truncate">Notebook Title</h2>
+                        <button id="rename-notebook-btn" class="inline-flex items-center justify-center px-2 py-1 text-slate-300 hover:text-white hover:bg-slate-700/60 rounded-lg transition-all text-xs font-semibold border border-slate-700 hover:border-slate-500 shadow-xs cursor-pointer shrink-0" title="Rename Notebook">
                             ✏️ Rename
                         </button>
                     </div>
-                    <p class="text-xs text-indigo-200/80 mt-1 font-medium pl-5">AI Research Assistant & Study Intelligence Suite</p>
                 </div>
                 
                 <!-- Workspace Navigation Tab Bar -->
-                <nav class="flex items-center gap-1.5 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-inner" aria-label="Workspace view toggles">
-                    <button id="tab-chat" class="workspace-tab px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/30 font-heading" data-target="view-chat">
+                <nav class="flex items-center gap-1.5 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-inner overflow-x-auto custom-scrollbar flex-nowrap shrink-0 max-w-full">
+                    <button id="tab-chat" class="workspace-tab px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/30 font-heading whitespace-nowrap" data-target="view-chat">
                         <span>💬</span> Research & Sources
                     </button>
-                    <button id="tab-study-hub" class="workspace-tab px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-2 font-heading" data-target="view-study">
+                    <button id="tab-study-hub" class="workspace-tab px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-1.5 sm:gap-2 font-heading whitespace-nowrap" data-target="view-study">
                         <span>🎓</span> Interactive Study Hub
                     </button>
-                    <button id="tab-roadmap" class="workspace-tab px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-2 font-heading" data-target="view-roadmap">
+                    <button id="tab-roadmap" class="workspace-tab px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-1.5 sm:gap-2 font-heading whitespace-nowrap" data-target="view-roadmap">
                         <span>🗺️</span> AI Learning Roadmap
-                        <span class="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-extrabold bg-gradient-to-r from-pink-500 to-amber-500 text-white rounded-full shadow-sm ml-1 animate-pulse">BONUS</span>
+                        <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] sm:text-[10px] font-extrabold bg-gradient-to-r from-pink-500 to-amber-500 text-white rounded-full shadow-sm ml-0.5 sm:ml-1 animate-pulse">BONUS</span>
                     </button>
                 </nav>
             </header>
             
             <!-- Tab 1: Chat & Sources (Research Workspace) -->
-            <div id="view-chat" class="flex-1 p-6 overflow-y-auto flex flex-col md:flex-row gap-6 bg-slate-50/50 custom-scrollbar">
+            <div id="view-chat" class="flex-1 p-3 sm:p-6 overflow-y-auto flex flex-col lg:flex-row gap-4 sm:gap-6 bg-slate-50/50 custom-scrollbar">
                 <!-- Left Pane: Chat -->
-                <div class="flex-1 flex flex-col border-r border-slate-200 md:pr-6 min-h-[400px]">
-                    <div id="chat-messages" class="flex-1 border border-slate-200/80 rounded-2xl flex flex-col p-5 overflow-y-auto mb-4 bg-white shadow-sm space-y-4 custom-scrollbar">
-                        <div class="text-center text-slate-400 my-auto py-10">
+                <div class="flex-1 flex flex-col lg:border-r lg:border-slate-200 lg:pr-6 min-h-[350px] sm:min-h-[400px]">
+                    <div id="chat-messages" class="flex-1 border border-slate-200/80 rounded-2xl flex flex-col p-3 sm:p-5 overflow-y-auto mb-3 sm:mb-4 bg-white shadow-sm space-y-4 custom-scrollbar">
+                        <div class="text-center text-slate-400 my-auto py-8 sm:py-10">
                             <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-xl">💡</div>
-                            <p class="font-medium text-slate-600">Ask a question about your uploaded sources!</p>
+                            <p class="font-medium text-slate-600 text-sm sm:text-base">Ask a question about your uploaded sources!</p>
                             <p class="text-xs text-slate-400 mt-1">Our AI assistant combines facts across documents with strict numerical citations.</p>
                         </div>
                     </div>
-                    <div class="mt-auto flex space-x-2.5">
-                        <input type="text" id="chat-input" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all disabled:bg-slate-100 disabled:text-slate-400" placeholder="Ask a question..." disabled>
-                        <button id="send-btn" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all shadow-md shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5" disabled>
+                    <div class="mt-auto flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2.5">
+                        <input type="text" id="chat-input" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all disabled:bg-slate-100 disabled:text-slate-400" placeholder="Ask any question about your uploaded sources..." disabled>
+                        <button id="send-btn" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all shadow-md shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5" disabled>
                             <span>Send</span>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform rotate-90" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
@@ -140,10 +148,10 @@
                 </div>
 
                 <!-- Right Pane: Sources -->
-                <div class="w-full md:w-80 lg:w-96 flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
+                <div class="w-full lg:w-80 xl:w-96 flex flex-col">
+                    <div class="flex justify-between items-center mb-3 sm:mb-4">
                         <div>
-                            <h3 class="text-lg font-bold font-heading text-slate-800 flex items-center gap-2">
+                            <h3 class="text-base sm:text-lg font-bold font-heading text-slate-800 flex items-center gap-2">
                                 <span>📚</span> Knowledge Sources
                             </h3>
                             <p class="text-xs text-slate-500">Attach PDFs, TXT, SRT, VTT, or URLs</p>
@@ -151,16 +159,16 @@
                         <div>
                             <input type="file" id="file-upload" class="hidden" accept=".txt,.pdf,.srt,.vtt">
                             <div class="flex items-center gap-1.5">
-                                <button id="add-url-btn" class="bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg transition text-xs font-semibold flex items-center gap-1 shadow-sm">
+                                <button id="add-url-btn" class="bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 px-2.5 py-1.5 rounded-lg transition text-xs font-semibold flex items-center gap-1 shadow-sm">
                                     <span>🌐</span> + URL
                                 </button>
-                                <button id="add-source-btn" class="bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition text-xs font-semibold flex items-center gap-1 shadow-sm shadow-indigo-500/20">
+                                <button id="add-source-btn" class="bg-indigo-600 text-white hover:bg-indigo-700 px-2.5 py-1.5 rounded-lg transition text-xs font-semibold flex items-center gap-1 shadow-sm shadow-indigo-500/20">
                                     <span>📄</span> + File
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <div class="flex-1 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col overflow-y-auto bg-slate-50/70 p-4 custom-scrollbar">
+                    <div class="flex-1 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col overflow-y-auto bg-slate-50/70 p-3 sm:p-4 custom-scrollbar min-h-[160px] max-h-[300px] lg:max-h-none">
                         <ul id="source-list" class="space-y-2.5">
                             <!-- Sources rendered here -->
                         </ul>
