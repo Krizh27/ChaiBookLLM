@@ -55,6 +55,14 @@ export const state = {
         this.currentNotebookId = id;
         this.notify();
     },
+
+    updateNotebook(updatedNotebook) {
+        const index = this.notebooks.findIndex(n => n.id === updatedNotebook.id);
+        if (index !== -1) {
+            this.notebooks[index] = updatedNotebook;
+            this.notify();
+        }
+    },
     
     getCurrentNotebook() {
         return this.notebooks.find(n => n.id === this.currentNotebookId);

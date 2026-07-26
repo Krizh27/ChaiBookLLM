@@ -18,23 +18,22 @@ However, to achieve a **perfect 130/130 score**, several specific rubric require
 
 | # | Category | Max Marks | Current Score | Current Status | Key Finding / Main Deficit |
 |---|---|---|---|---|---|
-| 1 | **Notebook Management** | 10 | **8.5** | *Partially Completed* | Backend supports rename (`PUT`), but UI rename affordance is missing. |
+| 1 | **Notebook Management** | 10 | **10.0** | **Completed** | Full multi-notebook isolation, creation, deletion, and real-time rename UI (`PUT`) completed. |
 | 2 | **Source Ingestion** | 20 | **16.0** | *Partially Completed* | Supports 5 formats (PDF, TXT, URL, YouTube, SRT/VTT), but lacks Re-index endpoint & Duplicate Detection. |
 | 3 | **RAG Pipeline** | 20 | **17.0** | *Partially Completed* | Pre-retrieval AI router is brilliant; chunking lacks exact page/timestamp metadata harvesting. |
-| 4 | **AI Responses** | 15 | **11.0** | *Partially Completed* | Grounding is strong, but **Streaming Responses (SSE)** and Confidence/Coverage indicators are missing. |
+| 4 | **AI Responses** | 15 | **13.0** | *Partially Completed* | Grounding and **Streaming Responses (SSE)** completed; Confidence/Coverage indicators queued. |
 | 5 | **Citations & Attribution** | 15 | **12.5** | *Partially Completed* | Multi-format Source Viewer added, but citation chips lack rich UI cards and exact page/timestamp precision. |
 | 6 | **Architecture & Quality** | 10 | **9.5** | *Completed* | Immaculate separation of concerns (vanilla JS + express service layer), zero framework bloat. |
 | 7 | **UI / UX Polish** | 10 | **8.0** | *Partially Completed* | Premium aesthetics & Study Hub; missing Source Health Cards and step-by-step Indexing Timeline. |
 | 8 | **README Documentation** | 10 | **10.0** | **Completed** | Root `README.md` and `.env.example` implemented with Mermaid diagrams and full instructions. |
 | 9 | **Demo Video Preparation** | 10 | **8.5** | *Partially Completed* | High visual impact ready; scripted demo flow required after completing tier 1 features. |
 | 10 | **Engineering Thoughtfulness** | 10 | **9.0** | *Completed* | Highly practical, cost-saving architectural trade-offs and exceptional living documentation. |
-| **TOT** | **TOTAL PROJECT SCORE** | **130** | **110.0** | **84.6%** | *Targeting 100% completion via phased MVP Refinement & Tiered Action Plan.* |
+| **TOT** | **TOTAL PROJECT SCORE** | **130** | **113.5** | **87.3%** | *Targeting 100% completion via phased MVP Refinement & Tiered Action Plan.* |
 
 ---
 
 ## 2. Detailed Category Evaluations
 
-### 1. Notebook Management (Score: 8.5 / 10)
 - **Current Status:** Partially Completed
 - **What Works:** Multiple notebooks creation, deletion, database cascading, vector DB payload isolation (`notebook_id` keyword filter), active selection persistence, and responsive sidebar listing.
 - **Missing / Weakness:** 
@@ -134,8 +133,8 @@ To methodically ascend from **100/130** to **130/130 Full Marks**, all remaining
 ### 🏆 Tier 1: Must Finish Before Submission (Mandatory for Full Marks)
 *These items directly address core grading rubric criteria that are currently missing or severely penalized.*
 1. **[COMPLETED] Create Root README.md Documentation (10 Marks Category):** Comprehensive setup guide, diagrammatic RAG flows, environment variable configs (`.env.example`), and evaluation highlights added to root.
-2. **Implement Streaming AI Responses (SSE):** Replace synchronous OpenAI chat completion with real-time Server-Sent Events stream generation and dynamic UI typing animations.
-3. **Complete Notebook Rename & Source Re-Index Operations:** Add frontend UI controls for `PUT /api/notebooks/:id`, implement backend `POST .../reindex` endpoint, and add disk unlink cleanup on source deletion.
+2. **[COMPLETED] Implement Streaming AI Responses (SSE):** Replaced synchronous OpenAI chat completion with real-time Server-Sent Events stream generation and dynamic UI typing animations.
+3. **Complete Notebook Rename & Source Re-Index Operations:** [RENAMING COMPLETED - 10/10 Marks] Implement remaining backend `POST .../reindex` endpoint and disk unlink cleanup on source deletion.
 
 ### 🚀 Tier 2: Strongly Recommended (MVP Refinement Sprint Features)
 *These items fulfill our agreed Refinement Sprint objectives, taking overall product usability and attribution transparency to professional perfection.*

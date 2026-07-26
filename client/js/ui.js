@@ -6,6 +6,7 @@ const elements = {
     newNotebookBtn: document.getElementById('new-notebook-btn'),
     mainContent: document.getElementById('main-content'),
     currentNotebookTitle: document.getElementById('current-notebook-title'),
+    renameNotebookBtn: document.getElementById('rename-notebook-btn'),
     addSourceBtn: document.getElementById('add-source-btn'),
     addUrlBtn: document.getElementById('add-url-btn'),
     fileUpload: document.getElementById('file-upload'),
@@ -49,6 +50,22 @@ export const ui = {
                 }
             }
         });
+
+        if (elements.renameNotebookBtn) {
+            elements.renameNotebookBtn.addEventListener('click', async () => {
+                const current = state.getCurrentNotebook();
+                if (!current) return;
+                const newName = prompt(`Enter a new name for notebook "${current.name}":`, current.name);
+                if (newName && newName.trim() && newName.trim() !== current.name) {
+                    try {
+                        const updated = await api.updateNotebook(current.id, newName.trim());
+                        state.updateNotebook(updated);
+                    } catch (error) {
+                        alert('Failed to rename notebook: ' + (error.message || error));
+                    }
+                }
+            });
+        }
 
         elements.modalClose.addEventListener('click', () => {
             elements.citationModal.classList.add('hidden');
@@ -170,9 +187,26 @@ export const ui = {
                 state.setCurrentNotebook(notebook.id);
             });
 
+            const editBtn = document.createElement('button');
+            editBtn.textContent = '✏️';
+            editBtn.className = 'text-slate-400 hover:text-indigo-400 font-normal ml-1 px-1.5 py-0.5 rounded text-xs leading-none transition duration-150 opacity-80 hover:opacity-100';
+            editBtn.title = 'Rename Notebook';
+            editBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const newName = prompt(`Enter a new name for notebook "${notebook.name}":`, notebook.name);
+                if (newName && newName.trim() && newName.trim() !== notebook.name) {
+                    try {
+                        const updated = await api.updateNotebook(notebook.id, newName.trim());
+                        state.updateNotebook(updated);
+                    } catch (error) {
+                        alert('Failed to rename notebook: ' + (error.message || error));
+                    }
+                }
+            });
+
             const deleteBtn = document.createElement('button');
             deleteBtn.textContent = '×';
-            deleteBtn.className = 'text-slate-500 hover:text-red-400 font-bold ml-2 px-2 py-0.5 rounded text-lg leading-none transition duration-150';
+            deleteBtn.className = 'text-slate-500 hover:text-red-400 font-bold ml-1 px-2 py-0.5 rounded text-lg leading-none transition duration-150';
             deleteBtn.title = 'Delete Notebook';
             deleteBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -186,8 +220,13 @@ export const ui = {
                 }
             });
 
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'flex items-center gap-0.5 shrink-0';
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+
             li.appendChild(span);
-            li.appendChild(deleteBtn);
+            li.appendChild(actionsDiv);
             elements.notebookList.appendChild(li);
         });
     },
@@ -591,8 +630,29 @@ export const ui = {
 
         try {
             const loadingId = this.renderMessage('assistant', 'Analyzing sources and routing query...', true);
-            const response = await api.askQuestion(notebookId, message);
-            this.updateMessage(loadingId, response.answer, response.citations);
+            let isFirstToken = true;
+            let streamCitations = [];
+
+            const response = await api.askQuestionStream(
+                notebookId, 
+                message,
+                (token, fullAnswer) => {
+                    if (isFirstToken) {
+                        isFirstToken = false;
+                        const div = document.getElementById(loadingId);
+                        if (div) {
+                            const bubble = div.querySelector('div');
+                            bubble.classList.remove('animate-pulse', 'text-indigo-500', 'font-semibold');
+                        }
+                    }
+                    this.updateStreamingMessage(loadingId, fullAnswer);
+                },
+                (citations) => {
+                    streamCitations = citations;
+                }
+            );
+            
+            this.updateMessage(loadingId, response.answer, response.citations || streamCitations);
         } catch (error) {
             console.error(error);
             this.renderMessage('assistant', 'Sorry, I encountered an error while communicating with the AI server.');
@@ -668,6 +728,14 @@ export const ui = {
                 }
             });
         });
+    },
+
+    updateStreamingMessage(id, content) {
+        const div = document.getElementById(id);
+        if (!div) return;
+        const bubble = div.querySelector('div');
+        bubble.innerHTML = this.formatContent(content) + '<span class="inline-block w-2 h-4 ml-1 bg-indigo-600 animate-pulse align-middle rounded-xs"></span>';
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
     },
 
     async openSourceViewer(citation) {
