@@ -59,16 +59,45 @@ export const uploadSource = async (req, res) => {
       title = file.originalname;
       pathOrUrl = file.path;
     } else if (url) {
-      if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        type = 'youtube';
-      } else {
-        type = 'url';
+      // Support YouTube Playlists and multiple comma-separated URLs
+      let urlsToProcess = [url.trim()];
+      if (url.includes('youtube.com/playlist') || url.includes('&list=')) {
+        try {
+          const resp = await fetch(url);
+          const html = await resp.text();
+          const matches = html.match(/watch\?v=([a-zA-Z0-9_-]{11})/g) || [];
+          const uniqueIds = [...new Set(matches.map(m => m.split('=')[1]))];
+          if (uniqueIds.length > 0) {
+            urlsToProcess = uniqueIds.slice(0, 15).map(id => `https://www.youtube.com/watch?v=${id}`);
+          }
+        } catch (e) {
+          console.warn('Failed to parse playlist URL, processing as single link:', e.message);
+        }
+      } else if (url.includes(',')) {
+        urlsToProcess = url.split(',').map(u => u.trim()).filter(Boolean);
       }
-      title = url; // Will be updated during indexing
-      pathOrUrl = url;
+
+      let primarySource = null;
+      for (const singleUrl of urlsToProcess) {
+        const urlType = (singleUrl.includes('youtube.com') || singleUrl.includes('youtu.be')) ? 'youtube' : 'url';
+        const result = await db.query(
+          `INSERT INTO sources (notebook_id, type, title, file_path_or_url, indexing_status) 
+           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+          [notebookId, urlType, singleUrl, singleUrl, 'pending']
+        );
+        const sourceRow = result.rows[0];
+        if (!primarySource) primarySource = sourceRow;
+        
+        // Trigger async indexing pipeline (fire-and-forget)
+        processSource(notebookId, sourceRow.id).catch(err => {
+          console.error('Unhandled error in processSource:', err);
+        });
+      }
+
+      return res.status(202).json(primarySource || { error: 'No valid URL found' });
     }
 
-    // Insert into database with status pending
+    // Insert file upload source into database with status pending
     const result = await db.query(
       `INSERT INTO sources (notebook_id, type, title, file_path_or_url, indexing_status) 
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,

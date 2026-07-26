@@ -1,4 +1,4 @@
-import { askQuestion } from '../services/ragService.js';
+import { askQuestion, askQuestionStream, generateLearningRoadmap } from '../services/ragService.js';
 import db from '../../db.js';
 
 /**
@@ -34,7 +34,7 @@ export const getHistory = async (req, res) => {
 };
 
 /**
- * Handles incoming chat messages, generates RAG answers, and saves the turn in PostgreSQL.
+ * Handles incoming chat messages, streams RAG answers via SSE, and saves the turn in PostgreSQL.
  */
 export const chat = async (req, res) => {
   try {
@@ -68,18 +68,59 @@ export const chat = async (req, res) => {
       [sessionId, 'user', message]
     );
 
-    // 3. Generate answer using OpenAI + Qdrant vectors
-    const response = await askQuestion(notebookId, message);
+    // Set SSE Headers for real-time streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
 
-    // 4. Save the AI assistant's response along with citations as JSONB
+    // 3. Generate answer stream using OpenAI + Qdrant vectors
+    const response = await askQuestionStream(
+      notebookId, 
+      message,
+      (token) => {
+        res.write(`data: ${JSON.stringify({ type: 'token', token })}\n\n`);
+      },
+      (citations) => {
+        res.write(`data: ${JSON.stringify({ type: 'metadata', citations })}\n\n`);
+      }
+    );
+
+    // 4. Save the AI assistant's complete response along with citations as JSONB
     await db.query(
       'INSERT INTO messages (chat_session_id, role, content, citations) VALUES ($1, $2, $3, $4)',
       [sessionId, 'assistant', response.answer, JSON.stringify(response.citations || [])]
     );
 
-    res.json(response);
+    res.write(`data: ${JSON.stringify({ type: 'done', answer: response.answer, citations: response.citations })}\n\n`);
+    res.end();
   } catch (error) {
     console.error('Error during chat generation:', error);
-    res.status(500).json({ error: 'Failed to generate answer' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate answer' });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', error: 'Failed to generate answer' })}\n\n`);
+      res.end();
+    }
+  }
+};
+
+/**
+ * Handles generating a personalized learning roadmap from indexed sources.
+ */
+export const createRoadmap = async (req, res) => {
+  try {
+    const { notebookId } = req.params;
+    const { topic, priorKnowledge } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ error: 'A learning target topic is required.' });
+    }
+
+    const roadmap = await generateLearningRoadmap(notebookId, topic, priorKnowledge);
+    res.json(roadmap);
+  } catch (error) {
+    console.error('Error generating personalized learning roadmap:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate learning roadmap' });
   }
 };

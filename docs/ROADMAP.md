@@ -65,7 +65,14 @@ This document tracks the overall development progress, planned phases, and statu
 - [x] Implement Clickable RAG Study Question Generator that seamlessly transitions to Chat and triggers cited AI inquiries.
 - [x] Build 3D Interactive Concept & Vocabulary Flashcards with tactile flipping transforms and automated AI explanation quiz triggers.
 
+### Phase 9: Bonus Feature — Personalized Learning Roadmap 🏁 [COMPLETED]
+- [x] Enhance URL upload (`sourceController.js`) to parse and expand YouTube Playlist links (`/playlist?list=...`) and comma-separated YouTube URLs into individual source indexing jobs.
+- [x] Enrich extracted YouTube transcripts (`indexingService.js`) with timestamped interval markers (`[Timestamp MM:SS | XXs]`) stored directly in Qdrant vector text payloads.
+- [x] Build modular AI learning curriculum generator (`generateLearningRoadmap`) using existing Qdrant vector similarity retrieval (`searchByNotebook`) and PostgreSQL JSONB metadata.
+- [x] Tailor difficulty progression and steps to the user's existing knowledge, automatically selecting the most suitable video when multiple sources explain the exact same topic and explaining *why*.
+- [x] Build interactive **🗺️ AI Learning Roadmap** dashboard with clickable step cards that launch recommended YouTube videos at the exact start timestamp (`&t=XXXs`).
+
 ---
 
-## 🏆 Current Status: FULLY FEATURED AI WORKSPACE (Phase 8 Completed)
-Our application has evolved from a simple RAG demo into a powerful, visually stunning AI Research & Interactive Study Suite! Featuring intelligent pre-retrieval routing, robust citation accuracy, and an immersive study hub powered by PostgreSQL JSONB metadata!
+## 🏆 Current Status: FULLY FEATURED AI WORKSPACE (Phase 9 Completed)
+Our application has evolved into an exceptional, visually stunning AI Research & Interactive Study Suite with full-fledged Bonus Features including Personalized YouTube Learning Roadmaps! Powered entirely by clean vanilla JavaScript, Express, Qdrant vectors, and PostgreSQL JSONB!

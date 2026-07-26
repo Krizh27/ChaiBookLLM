@@ -74,7 +74,15 @@ export async function processSource(notebookId, sourceId) {
     } else if (source.type === 'youtube') {
       try {
         const transcript = await YoutubeTranscript.fetchTranscript(filePath);
-        rawText = transcript.map(t => t.text).join(' ');
+        // Annotate transcript chunks with accurate timestamps (offset in ms) for exact video playback navigation
+        rawText = transcript.map((t, i) => {
+          const totalSecs = Math.floor((t.offset || 0) / 1000);
+          const mins = Math.floor(totalSecs / 60);
+          const secs = totalSecs % 60;
+          const timeFormat = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+          // Add timestamp marker periodically or on every segment
+          return `[Timestamp ${timeFormat} | ${totalSecs}s] ${t.text}`;
+        }).join(' ');
       } catch (err) {
         throw new Error('Failed to fetch YouTube transcript. Ensure the video has closed captions.');
       }

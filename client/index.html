@@ -87,7 +87,10 @@
                     </button>
                     <button id="tab-study-hub" class="workspace-tab px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-2 font-heading" data-target="view-study">
                         <span>🎓</span> Interactive Study Hub
-                        <span class="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-extrabold bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full shadow-sm ml-1 animate-pulse">NEW</span>
+                    </button>
+                    <button id="tab-roadmap" class="workspace-tab px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-2 font-heading" data-target="view-roadmap">
+                        <span>🗺️</span> AI Learning Roadmap
+                        <span class="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-extrabold bg-gradient-to-r from-pink-500 to-amber-500 text-white rounded-full shadow-sm ml-1 animate-pulse">BONUS</span>
                     </button>
                 </nav>
             </header>
@@ -222,6 +225,77 @@
                         <!-- Populated by ui.js -->
                         <div class="col-span-full text-center text-slate-400 py-10 italic bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
                             Extracting vocabulary terms and prominent entities from your documents...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Personalized Learning Roadmap (Bonus Workspace) -->
+            <div id="view-roadmap" class="flex-1 p-6 overflow-y-auto bg-slate-50/70 hidden custom-scrollbar">
+                <!-- Banner -->
+                <div class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 mb-8 shadow-xl border border-indigo-500/20">
+                    <div class="absolute -right-16 -top-16 w-80 h-80 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="max-w-3xl relative z-10">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/20 border border-pink-400/30 text-pink-300 text-xs font-bold mb-4 uppercase tracking-wider">
+                            <span>🚀 RAG Video Curriculum Generator</span>
+                        </div>
+                        <h3 class="text-2xl sm:text-3xl font-extrabold font-heading mb-3 tracking-tight">
+                            Personalized Video Learning Roadmap
+                        </h3>
+                        <p class="text-indigo-200/90 text-sm sm:text-base leading-relaxed font-normal">
+                            Turn uploaded YouTube videos and entire playlists into an intelligent, step-by-step curriculum customized to your background! Click any generated lesson card to start watching the recommended video at the exact timestamp.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Input Configuration Panel -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 mb-8">
+                    <h4 class="text-lg font-extrabold font-heading text-slate-900 mb-4 flex items-center gap-2">
+                        <span>🎯</span> Configure Your Learning Goal
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">What topic do you want to master?</label>
+                            <input type="text" id="roadmap-topic" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50/50 shadow-inner transition-all" placeholder="e.g. React Server Components & Concurrent Mode">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">What do you already know? <span class="text-slate-400 font-normal">(Optional)</span></label>
+                            <input type="text" id="roadmap-knowledge" class="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50/50 shadow-inner transition-all" placeholder="e.g. I already know HTML, CSS, and basic JSX. Skip beginner topics.">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end">
+                        <button id="generate-roadmap-btn" class="bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:opacity-95 text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-lg shadow-purple-500/25 flex items-center gap-2 cursor-pointer transform active:scale-95">
+                            <span>✨ Generate Personalized Roadmap</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Roadmap Display Section -->
+                <div id="roadmap-display-area">
+                    <!-- Default Empty State -->
+                    <div id="roadmap-empty-state" class="text-center text-slate-400 py-16 bg-white rounded-3xl border border-slate-200/60 p-8 shadow-sm">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center text-3xl">🗺️</div>
+                        <h5 class="text-base font-bold text-slate-700 mb-1">No Roadmap Generated Yet</h5>
+                        <p class="text-xs text-slate-500 max-w-md mx-auto">Enter your learning goal above and click Generate. Our RAG engine will match your expertise against uploaded YouTube transcripts and structure an interactive timestamped study timeline!</p>
+                    </div>
+
+                    <!-- Populated Roadmap -->
+                    <div id="roadmap-content" class="hidden animate-fade-in">
+                        <div class="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 mb-8 shadow-md border border-slate-800">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-extrabold px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-900 rounded-full uppercase tracking-wider font-heading">Custom AI Curriculum</span>
+                                <span class="text-xs text-slate-400">Powered by RAG Video Transcript Extraction</span>
+                            </div>
+                            <h4 id="roadmap-header-title" class="text-2xl font-extrabold font-heading text-white mb-2">Roadmap Title</h4>
+                            <p id="roadmap-header-summary" class="text-slate-300 text-sm leading-relaxed">Roadmap Summary</p>
+                        </div>
+
+                        <div class="relative">
+                            <!-- Vertical Timeline Line -->
+                            <div class="absolute left-6 sm:left-8 top-4 bottom-4 w-1 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full z-0 hidden sm:block"></div>
+                            <div id="roadmap-steps-list" class="space-y-6 sm:pl-4 relative z-10">
+                                <!-- Step cards populated via ui.js -->
+                            </div>
                         </div>
                     </div>
                 </div>

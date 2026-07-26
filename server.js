@@ -16,10 +16,12 @@ app.use('/uploads', express.static('uploads'));
 import notebookRoutes from './server/routes/notebookRoutes.js';
 import sourceRoutes from './server/routes/sourceRoutes.js';
 import chatRoutes from './server/routes/chatRoutes.js';
+import * as chatController from './server/controllers/chatController.js';
 // API Routes
 app.use('/api/notebooks', notebookRoutes);
 app.use('/api/notebooks/:notebookId/sources', sourceRoutes);
 app.use('/api/notebooks/:notebookId/chat', chatRoutes);
+app.post('/api/notebooks/:notebookId/roadmap', chatController.createRoadmap);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

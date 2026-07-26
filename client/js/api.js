@@ -144,5 +144,18 @@ export const api = {
             }
         }
         return { answer, citations };
+    },
+
+    async generateRoadmap(notebookId, topic, priorKnowledge = "") {
+        const response = await fetch(`${API_BASE}/notebooks/${notebookId}/roadmap`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, priorKnowledge })
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to generate personalized roadmap');
+        }
+        return response.json();
     }
 };

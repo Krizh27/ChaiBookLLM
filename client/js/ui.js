@@ -26,12 +26,23 @@ const elements = {
     // Workspace Navigation & Study Hub Elements
     tabChat: document.getElementById('tab-chat'),
     tabStudyHub: document.getElementById('tab-study-hub'),
+    tabRoadmap: document.getElementById('tab-roadmap'),
     viewChat: document.getElementById('view-chat'),
     viewStudy: document.getElementById('view-study'),
+    viewRoadmap: document.getElementById('view-roadmap'),
     studySummariesGrid: document.getElementById('study-summaries-grid'),
     studyQuestionsList: document.getElementById('study-questions-list'),
     studyFlashcardsGrid: document.getElementById('study-flashcards-grid'),
-    shuffleCardsBtn: document.getElementById('shuffle-cards-btn')
+    shuffleCardsBtn: document.getElementById('shuffle-cards-btn'),
+    // Roadmap Elements
+    roadmapTopic: document.getElementById('roadmap-topic'),
+    roadmapKnowledge: document.getElementById('roadmap-knowledge'),
+    generateRoadmapBtn: document.getElementById('generate-roadmap-btn'),
+    roadmapEmptyState: document.getElementById('roadmap-empty-state'),
+    roadmapContent: document.getElementById('roadmap-content'),
+    roadmapHeaderTitle: document.getElementById('roadmap-header-title'),
+    roadmapHeaderSummary: document.getElementById('roadmap-header-summary'),
+    roadmapStepsList: document.getElementById('roadmap-steps-list')
 };
 
 export const ui = {
@@ -276,6 +287,37 @@ export const ui = {
                 this.renderStudyHub(state.sources || []);
             });
         }
+        if (elements.tabRoadmap) {
+            elements.tabRoadmap.addEventListener('click', () => {
+                this.switchWorkspaceTab('roadmap');
+            });
+        }
+
+        if (elements.generateRoadmapBtn) {
+            elements.generateRoadmapBtn.addEventListener('click', async () => {
+                const topic = (elements.roadmapTopic && elements.roadmapTopic.value || '').trim();
+                const knowledge = (elements.roadmapKnowledge && elements.roadmapKnowledge.value || '').trim();
+                if (!topic) {
+                    this.showToast('Please enter a target learning topic to generate your roadmap.', 'error');
+                    return;
+                }
+                const btn = elements.generateRoadmapBtn;
+                const origHtml = btn.innerHTML;
+                try {
+                    btn.innerHTML = '<span>⏳ Analyzing YouTube & Document Sources...</span>';
+                    btn.disabled = true;
+                    this.showToast('Analyzing RAG video timestamps and source metadata...', 'success');
+                    const roadmap = await api.generateRoadmap(state.currentNotebookId, topic, knowledge);
+                    this.renderRoadmap(roadmap);
+                    this.showToast('🎉 Personalized learning roadmap generated successfully!', 'success');
+                } catch (e) {
+                    this.showToast(e.message || 'Failed to generate learning roadmap.', 'error');
+                } finally {
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                }
+            });
+        }
 
         if (elements.shuffleCardsBtn) {
             elements.shuffleCardsBtn.addEventListener('click', () => {
@@ -291,21 +333,21 @@ export const ui = {
     },
 
     switchWorkspaceTab(tabName) {
-        if (!elements.viewChat || !elements.viewStudy) return;
+        if (!elements.viewChat || !elements.viewStudy || !elements.viewRoadmap) return;
 
-        if (tabName === 'chat') {
-            elements.viewChat.classList.remove('hidden');
-            elements.viewStudy.classList.add('hidden');
-            
-            elements.tabChat.className = "workspace-tab px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/30 font-heading";
-            elements.tabStudyHub.className = "workspace-tab px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-2 font-heading";
-        } else {
-            elements.viewStudy.classList.remove('hidden');
-            elements.viewChat.classList.add('hidden');
-            
-            elements.tabStudyHub.className = "workspace-tab px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30 font-heading";
-            elements.tabChat.className = "workspace-tab px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-2 font-heading";
-        }
+        elements.viewChat.classList.toggle('hidden', tabName !== 'chat');
+        elements.viewStudy.classList.toggle('hidden', tabName !== 'study');
+        elements.viewRoadmap.classList.toggle('hidden', tabName !== 'roadmap');
+
+        const baseTabClass = "workspace-tab px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 font-heading ";
+        const activeChat = baseTabClass + "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/30";
+        const activeStudy = baseTabClass + "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30";
+        const activeRoadmap = baseTabClass + "bg-gradient-to-r from-pink-600 to-amber-600 text-white shadow-md shadow-pink-500/30";
+        const inactiveClass = baseTabClass + "text-slate-300 hover:text-white hover:bg-slate-700/60";
+
+        if (elements.tabChat) elements.tabChat.className = (tabName === 'chat') ? activeChat : inactiveClass;
+        if (elements.tabStudyHub) elements.tabStudyHub.className = (tabName === 'study') ? activeStudy : inactiveClass;
+        if (elements.tabRoadmap) elements.tabRoadmap.className = (tabName === 'roadmap') ? activeRoadmap : inactiveClass;
     },
 
     renderSidebar() {
@@ -1163,6 +1205,81 @@ export const ui = {
             elements.sendBtn.disabled = false;
             elements.chatInput.placeholder = "Ask any question about your uploaded sources...";
         }
+    },
+
+    renderRoadmap(roadmap) {
+        if (!elements.roadmapEmptyState || !elements.roadmapContent || !elements.roadmapStepsList) return;
+        
+        elements.roadmapEmptyState.classList.add('hidden');
+        elements.roadmapContent.classList.remove('hidden');
+        
+        if (elements.roadmapHeaderTitle) elements.roadmapHeaderTitle.textContent = roadmap.title || 'Your Personalized Learning Roadmap';
+        if (elements.roadmapHeaderSummary) elements.roadmapHeaderSummary.textContent = roadmap.summary || 'Follow these personalized steps to achieve mastery using your uploaded video lectures and sources.';
+        
+        elements.roadmapStepsList.innerHTML = '';
+        const steps = roadmap.steps || [];
+        if (steps.length === 0) {
+            elements.roadmapStepsList.innerHTML = '<p class="text-slate-400 p-6 italic text-center bg-white rounded-2xl border border-slate-200 shadow-sm">No specific steps generated for this topic.</p>';
+            return;
+        }
+
+        steps.forEach((step, index) => {
+            const card = document.createElement('div');
+            card.className = "bg-white hover:bg-slate-50/90 rounded-2xl border border-slate-200/90 p-6 shadow-sm hover:shadow-lg transition-all duration-200 relative group cursor-pointer transform hover:-translate-y-0.5";
+            
+            const diffColor = step.difficulty === 'Advanced' ? 'bg-rose-100 text-rose-800 border-rose-200' :
+                              (step.difficulty === 'Intermediate' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200');
+
+            const prereqs = (step.prerequisites || []).map(p => `<span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200"># ${p}</span>`).join(' ');
+
+            card.innerHTML = `
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-900 text-white font-extrabold text-xs shadow-sm">${step.step_number || (index + 1)}</span>
+                            <span class="text-xs font-bold uppercase tracking-wider px-3 py-0.5 rounded-full border ${diffColor}">${step.difficulty || 'Essential'}</span>
+                            <span class="text-xs text-slate-500 font-semibold flex items-center gap-1">⏱️ ${step.estimated_duration || '~10 mins'}</span>
+                        </div>
+                        <h5 class="text-xl font-extrabold font-heading text-slate-900 group-hover:text-indigo-600 transition-colors">${step.topic}</h5>
+                        <p class="text-slate-600 text-sm mt-1 leading-relaxed">${step.explanation}</p>
+                    </div>
+                    <div class="shrink-0 bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 max-w-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-md shadow-red-500/20">▶️</div>
+                        <div class="overflow-hidden">
+                            <span class="text-[10px] uppercase font-extrabold text-indigo-700 block tracking-wider">Recommended Source:</span>
+                            <span class="text-xs font-bold text-slate-800 block truncate" title="${step.recommended_video_title || 'Video Lecture'}">${step.recommended_video_title || 'Video Lecture'}</span>
+                            <span class="text-xs text-rose-600 font-extrabold flex items-center gap-1 mt-0.5">Start at timestamp: ${step.timestamp_str || '00:00'} ↗</span>
+                        </div>
+                    </div>
+                </div>
+                ${step.why_recommended ? `
+                <div class="mb-4 bg-slate-50 border-l-4 border-indigo-500 p-3 rounded-r-xl text-xs text-slate-700 font-medium">
+                    <strong class="text-slate-900 font-bold">💡 Why this video & section?</strong> ${step.why_recommended}
+                </div>` : ''}
+                ${prereqs ? `
+                <div class="flex flex-wrap items-center gap-1.5 pt-3 border-t border-slate-100">
+                    <span class="text-xs text-slate-400 font-bold uppercase mr-1">Prerequisites:</span>
+                    ${prereqs}
+                </div>` : ''}
+            `;
+
+            card.addEventListener('click', () => {
+                let url = step.video_url || '';
+                const secs = step.timestamp_seconds || 0;
+                if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
+                    const separator = url.includes('?') ? '&' : '?';
+                    const timestampedUrl = `${url}${separator}t=${secs}s`;
+                    window.open(timestampedUrl, '_blank', 'noopener,noreferrer');
+                    this.showToast(`▶️ Opening video at timestamp ${step.timestamp_str || secs + 's'}!`, 'success');
+                } else if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                } else {
+                    this.showToast(`Selected lesson step: ${step.recommended_video_title} (${step.timestamp_str})`, 'success');
+                }
+            });
+
+            elements.roadmapStepsList.appendChild(card);
+        });
     }
 };
 
