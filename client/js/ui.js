@@ -37,16 +37,143 @@ const elements = {
 export const ui = {
     pollingInterval: null,
 
+    showToast(message, type = 'error') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        const isError = type === 'error';
+        toast.className = `pointer-events-auto flex items-center gap-3 p-4 rounded-2xl shadow-2xl backdrop-blur-md border text-sm font-semibold transition-all duration-300 transform translate-y-2 opacity-0 ${
+            isError 
+                ? 'bg-red-950/95 border-red-700/80 text-red-100 shadow-red-900/40' 
+                : 'bg-emerald-950/95 border-emerald-700/80 text-emerald-100 shadow-emerald-900/40'
+        }`;
+        
+        toast.innerHTML = `
+            <span class="text-xl shrink-0">${isError ? '⚠️' : '✅'}</span>
+            <span class="flex-1 leading-snug">${message}</span>
+            <button class="text-slate-400 hover:text-white ml-2 text-lg font-bold leading-none cursor-pointer">&times;</button>
+        `;
+        
+        const closeBtn = toast.querySelector('button');
+        closeBtn.addEventListener('click', () => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 200);
+        });
+        
+        container.appendChild(toast);
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-2', 'opacity-0');
+        });
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 200);
+            }
+        }, 5000);
+    },
+
+    showDialog({ title, subtitle = '', message, isPrompt = false, defaultValue = '', placeholder = '', icon = '✨', confirmText = 'Confirm', isDanger = false }) {
+        return new Promise((resolve) => {
+            const dialog = document.getElementById('custom-dialog');
+            const iconEl = document.getElementById('dialog-icon');
+            const titleEl = document.getElementById('dialog-title');
+            const subtitleEl = document.getElementById('dialog-subtitle');
+            const messageEl = document.getElementById('dialog-message');
+            const inputContainer = document.getElementById('dialog-input-container');
+            const inputEl = document.getElementById('dialog-input');
+            const btnCancel = document.getElementById('dialog-btn-cancel');
+            const btnSubmit = document.getElementById('dialog-btn-submit');
+            
+            if (!dialog) return resolve(null);
+            
+            iconEl.textContent = icon;
+            titleEl.textContent = title;
+            subtitleEl.textContent = subtitle;
+            messageEl.textContent = message;
+            
+            if (isDanger) {
+                btnSubmit.className = 'px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold text-sm shadow-lg shadow-red-500/30 transition-all transform active:scale-95 cursor-pointer';
+            } else {
+                btnSubmit.className = 'px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95 cursor-pointer';
+            }
+            btnSubmit.textContent = confirmText;
+
+            if (isPrompt) {
+                inputContainer.classList.remove('hidden');
+                inputEl.value = defaultValue;
+                inputEl.placeholder = placeholder || 'Type here...';
+            } else {
+                inputContainer.classList.add('hidden');
+                inputEl.value = '';
+            }
+
+            dialog.classList.remove('hidden');
+            if (isPrompt) {
+                setTimeout(() => {
+                    inputEl.focus();
+                    inputEl.select();
+                }, 50);
+            }
+
+            const cleanup = (result) => {
+                dialog.classList.add('hidden');
+                btnCancel.removeEventListener('click', onCancel);
+                btnSubmit.removeEventListener('click', onSubmit);
+                inputEl.removeEventListener('keydown', onKeyDown);
+                dialog.removeEventListener('click', onBackdrop);
+                resolve(result);
+            };
+
+            const onCancel = () => cleanup(isPrompt ? null : false);
+            const onSubmit = () => cleanup(isPrompt ? inputEl.value : true);
+            const onKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onSubmit();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    onCancel();
+                }
+            };
+            const onBackdrop = (e) => {
+                if (e.target === dialog) onCancel();
+            };
+
+            btnCancel.addEventListener('click', onCancel);
+            btnSubmit.addEventListener('click', onSubmit);
+            if (isPrompt) inputEl.addEventListener('keydown', onKeyDown);
+            dialog.addEventListener('click', onBackdrop);
+        });
+    },
+
+    showPrompt({ title, subtitle = 'Interactive Input', message = 'Please provide the details below:', defaultValue = '', placeholder = '', icon = '✏️', confirmText = 'Save' }) {
+        return this.showDialog({ title, subtitle, message, isPrompt: true, defaultValue, placeholder, icon, confirmText, isDanger: false });
+    },
+
+    showConfirm({ title, subtitle = 'Confirmation Required', message, icon = '⚠️', confirmText = 'Confirm', isDanger = true }) {
+        return this.showDialog({ title, subtitle, message, isPrompt: false, icon, confirmText, isDanger });
+    },
+
     init() {
         elements.newNotebookBtn.addEventListener('click', async () => {
-            const name = prompt('Enter notebook name:');
+            const name = await this.showPrompt({
+                title: 'Create New Notebook',
+                subtitle: 'Workspace Setup',
+                message: 'Give your new research notebook a clear, memorable name:',
+                placeholder: 'e.g., Quantum Computing Research',
+                icon: '📘',
+                confirmText: 'Create'
+            });
             if (name && name.trim()) {
                 try {
                     const newNotebook = await api.createNotebook(name.trim());
                     // Use unified addition and selection to prevent firing asynchronous renders on the old notebook
                     state.addAndSelectNotebook(newNotebook);
+                    this.showToast(`Notebook "${newNotebook.name}" created successfully!`, 'success');
                 } catch (error) {
-                    alert('Error creating notebook');
+                    this.showToast('Error creating notebook: ' + error.message, 'error');
                 }
             }
         });
@@ -55,13 +182,22 @@ export const ui = {
             elements.renameNotebookBtn.addEventListener('click', async () => {
                 const current = state.getCurrentNotebook();
                 if (!current) return;
-                const newName = prompt(`Enter a new name for notebook "${current.name}":`, current.name);
+                const newName = await this.showPrompt({
+                    title: 'Rename Notebook',
+                    subtitle: current.name,
+                    message: 'Enter the new title for this research workspace:',
+                    defaultValue: current.name,
+                    placeholder: 'New notebook title...',
+                    icon: '✏️',
+                    confirmText: 'Update'
+                });
                 if (newName && newName.trim() && newName.trim() !== current.name) {
                     try {
                         const updated = await api.updateNotebook(current.id, newName.trim());
                         state.updateNotebook(updated);
+                        this.showToast(`Notebook renamed to "${updated.name}"`, 'success');
                     } catch (error) {
-                        alert('Failed to rename notebook: ' + (error.message || error));
+                        this.showToast('Failed to rename notebook: ' + (error.message || error), 'error');
                     }
                 }
             });
@@ -90,15 +226,24 @@ export const ui = {
         });
 
         elements.addUrlBtn.addEventListener('click', async () => {
-            const url = prompt('Enter website or YouTube URL:');
             const currentNotebookId = state.currentNotebookId;
-            if (url && url.trim() && currentNotebookId) {
+            if (!currentNotebookId) return;
+            const url = await this.showPrompt({
+                title: 'Import Web or YouTube Source',
+                subtitle: 'Knowledge Expansion',
+                message: 'Paste the exact HTTP/HTTPS URL of an article, website, or YouTube video lecture:',
+                placeholder: 'https://youtube.com/watch?v=... or https://example.com/article',
+                icon: '🌐',
+                confirmText: 'Import'
+            });
+            if (url && url.trim()) {
                 try {
                     this.updateInputState(true, "Reading and parsing URL source...");
                     const newSource = await api.uploadUrl(currentNotebookId, url.trim());
                     state.addSource(newSource);
+                    this.showToast('URL imported successfully and indexing started!', 'success');
                 } catch (error) {
-                    alert('Error adding URL');
+                    this.showToast('Error adding URL: ensure link is valid and accessible', 'error');
                     this.updateInputState();
                 }
             }
@@ -113,8 +258,9 @@ export const ui = {
                     this.updateInputState(true, "Uploading and indexing document...");
                     const newSource = await api.uploadSource(currentNotebookId, file);
                     state.addSource(newSource);
+                    this.showToast(`Uploaded "${file.name}". Processing started!`, 'success');
                 } catch (error) {
-                    alert('Error uploading file');
+                    this.showToast('Error uploading file: check format or connection', 'error');
                     this.updateInputState();
                 } finally {
                     elements.fileUpload.value = ''; // Reset input
@@ -193,13 +339,22 @@ export const ui = {
             editBtn.title = 'Rename Notebook';
             editBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const newName = prompt(`Enter a new name for notebook "${notebook.name}":`, notebook.name);
+                const newName = await ui.showPrompt({
+                    title: 'Rename Notebook',
+                    subtitle: notebook.name,
+                    message: 'Enter a new title for this notebook:',
+                    defaultValue: notebook.name,
+                    placeholder: 'New name...',
+                    icon: '✏️',
+                    confirmText: 'Update'
+                });
                 if (newName && newName.trim() && newName.trim() !== notebook.name) {
                     try {
                         const updated = await api.updateNotebook(notebook.id, newName.trim());
                         state.updateNotebook(updated);
+                        ui.showToast(`Notebook renamed to "${updated.name}"`, 'success');
                     } catch (error) {
-                        alert('Failed to rename notebook: ' + (error.message || error));
+                        ui.showToast('Failed to rename notebook: ' + (error.message || error), 'error');
                     }
                 }
             });
@@ -210,12 +365,21 @@ export const ui = {
             deleteBtn.title = 'Delete Notebook';
             deleteBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if (confirm(`Delete notebook "${notebook.name}" and all associated vectors?`)) {
+                const confirmed = await ui.showConfirm({
+                    title: 'Delete Notebook',
+                    subtitle: notebook.name,
+                    message: `Are you certain you want to delete "${notebook.name}" and erase all of its indexed Qdrant vectors? This action cannot be undone.`,
+                    icon: '🗑️',
+                    confirmText: 'Delete Notebook',
+                    isDanger: true
+                });
+                if (confirmed) {
                     try {
                         await api.deleteNotebook(notebook.id);
                         state.removeNotebook(notebook.id);
+                        ui.showToast(`Notebook "${notebook.name}" deleted.`, 'success');
                     } catch (error) {
-                        alert('Error deleting notebook');
+                        ui.showToast('Error deleting notebook: ' + error.message, 'error');
                     }
                 }
             });
@@ -377,8 +541,8 @@ export const ui = {
                         source.indexing_status = 'processing';
                         this.startSourcePolling(state.currentNotebookId);
                     } catch (error) {
-                        alert('Error re-indexing source: ' + (error.message || error));
-                        this.renderMainArea();
+                        ui.showToast('Error re-indexing source: ' + (error.message || error), 'error');
+                        ui.renderMainArea();
                     }
                 });
             }
@@ -389,9 +553,22 @@ export const ui = {
             delBtn.title = 'Delete source and vectors';
             delBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if(confirm(`Delete source "${source.title}" and remove its Qdrant vectors?`)) {
-                    await api.deleteSource(state.currentNotebookId, source.id);
-                    this.renderMainArea();
+                const confirmed = await ui.showConfirm({
+                    title: 'Remove Knowledge Source',
+                    subtitle: source.title,
+                    message: `Delete "${source.title}" and erase all of its associated vector embeddings from Qdrant?`,
+                    icon: '✖️',
+                    confirmText: 'Remove Source',
+                    isDanger: true
+                });
+                if (confirmed) {
+                    try {
+                        await api.deleteSource(state.currentNotebookId, source.id);
+                        ui.showToast(`Removed "${source.title}" from workspace.`, 'success');
+                        ui.renderMainArea();
+                    } catch (error) {
+                        ui.showToast('Error removing source: ' + error.message, 'error');
+                    }
                 }
             });
 
