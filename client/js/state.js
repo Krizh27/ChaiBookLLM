@@ -37,6 +37,12 @@ export const state = {
         this.notify();
     },
 
+    addAndSelectNotebook(notebook) {
+        this.notebooks.unshift(notebook);
+        this.currentNotebookId = notebook.id;
+        this.notify();
+    },
+
     removeNotebook(id) {
         this.notebooks = this.notebooks.filter(n => n.id !== id);
         if (this.currentNotebookId === id) {

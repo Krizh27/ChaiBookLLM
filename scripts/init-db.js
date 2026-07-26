@@ -19,8 +19,11 @@ async function init() {
         file_path_or_url TEXT NOT NULL,
         indexing_status VARCHAR(50) DEFAULT 'pending',
         error_message TEXT,
+        metadata JSONB DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      ALTER TABLE sources ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT NULL;
       
       CREATE TABLE IF NOT EXISTS chat_sessions (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -61,6 +61,12 @@ export const api = {
         return response.json();
     },
 
+    async getChatHistory(notebookId) {
+        const response = await fetch(`${API_BASE}/notebooks/${notebookId}/chat`);
+        if (!response.ok) throw new Error('Failed to fetch chat history');
+        return response.json();
+    },
+
     async askQuestion(notebookId, message) {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/chat`, {
             method: 'POST',

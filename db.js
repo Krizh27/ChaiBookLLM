@@ -4,6 +4,9 @@ import 'dotenv/config';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('sslmode=require') || process.env.DATABASE_URL.includes('neon.tech'))
+    ? { rejectUnauthorized: false }
+    : undefined,
 });
 
 pool.on('error', (err, client) => {

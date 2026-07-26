@@ -1,3 +1,4 @@
+import fs from 'fs';
 import db from '../../db.js';
 import { processSource } from '../services/indexingService.js';
 import { deleteBySourceId } from '../repositories/qdrantRepo.js';
@@ -26,12 +27,35 @@ export const uploadSource = async (req, res) => {
       return res.status(400).json({ error: 'No file or URL provided' });
     }
 
+    // Verify parent notebook exists in PostgreSQL before attaching a source
+    const notebookCheck = await db.query('SELECT id FROM notebooks WHERE id = $1', [notebookId]);
+    if (notebookCheck.rows.length === 0) {
+      if (file && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path); // Clean up orphaned uploaded file from disk
+      }
+      return res.status(404).json({ error: 'Notebook not found' });
+    }
+
     let type = 'text';
     let title = '';
     let pathOrUrl = '';
 
     if (file) {
-      type = file.originalname.toLowerCase().endsWith('.pdf') ? 'pdf' : 'text';
+      const extension = file.originalname.toLowerCase();
+      if (!extension.endsWith('.pdf') && !extension.endsWith('.txt') && !extension.endsWith('.srt') && !extension.endsWith('.vtt')) {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path); // Remove unsupported file from disk
+        }
+        return res.status(400).json({ error: 'Only .txt, .pdf, .srt, and .vtt files are currently supported' });
+      }
+
+      if (extension.endsWith('.pdf')) {
+        type = 'pdf';
+      } else if (extension.endsWith('.srt') || extension.endsWith('.vtt')) {
+        type = 'subtitle';
+      } else {
+        type = 'text';
+      }
       title = file.originalname;
       pathOrUrl = file.path;
     } else if (url) {

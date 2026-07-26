@@ -8,6 +8,27 @@ import db from '../../db.js';
 import { chunkText } from '../ai/chunking.js';
 import { generateEmbeddings } from '../ai/embeddings.js';
 import { upsertPoints } from '../repositories/qdrantRepo.js';
+import { generateSourceMetadata } from '../ai/metadata.js';
+
+/**
+ * Cleans SRT and VTT subtitle file formats into readable text for embedding and RAG processing.
+ */
+function cleanSubtitleText(rawContent) {
+  return rawContent
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => {
+      if (!line) return false; // empty line
+      if (line.startsWith('WEBVTT') || line.startsWith('NOTE')) return false;
+      if (line.includes('-->')) return false; // timestamp line
+      if (/^\d+$/.test(line)) return false; // index sequence number in SRT
+      return true;
+    })
+    .join(' ')
+    .replace(/<[^>]*>/g, '') // strip HTML styling tags like <i>, </i>, <font>
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 /**
  * Processes an uploaded source: extracts text, chunks it, embeds it, and stores it.
@@ -32,6 +53,9 @@ export async function processSource(notebookId, sourceId) {
     
     if (source.type === 'text') {
       rawText = await fs.readFile(filePath, 'utf-8');
+    } else if (source.type === 'subtitle' || filePath.endsWith('.srt') || filePath.endsWith('.vtt')) {
+      const content = await fs.readFile(filePath, 'utf-8');
+      rawText = cleanSubtitleText(content);
     } else if (source.type === 'pdf') {
       const dataBuffer = await fs.readFile(filePath);
       const pdfData = await pdf(dataBuffer);
@@ -58,7 +82,15 @@ export async function processSource(notebookId, sourceId) {
       throw new Error(`Unsupported file type: ${source.type}`);
     }
 
-    // 4. Chunk text
+    // 4. Generate lightweight AI metadata summary and save to PostgreSQL
+    console.log(`Generating AI summary metadata for source: ${source.title}...`);
+    const metadata = await generateSourceMetadata(source.title, rawText);
+    await db.query(
+      'UPDATE sources SET metadata = $1 WHERE id = $2 AND notebook_id = $3',
+      [JSON.stringify(metadata), sourceId, notebookId]
+    );
+
+    // 5. Chunk text
     console.log(`Chunking text for source: ${source.title}...`);
     const chunks = await chunkText(rawText);
     console.log(`Created ${chunks.length} chunks.`);

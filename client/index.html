@@ -3,74 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Research Assistant</title>
-    <!-- Tailwind CSS via CDN for rapid MVP development -->
+    <title>AI Research & Interactive Study Assistant</title>
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Outfit (headings) & Inter (body) for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Design Token Overrides & Animations -->
     <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans h-screen flex overflow-hidden">
+<body class="bg-slate-100 text-slate-900 font-sans h-screen flex overflow-hidden selection:bg-indigo-500 selection:text-white">
     
     <!-- Sidebar -->
-    <aside class="w-64 bg-gray-900 text-white flex flex-col">
-        <div class="p-4 border-b border-gray-700 flex justify-between items-center">
-            <h1 class="text-xl font-bold">NotebookLM</h1>
-            <button id="new-notebook-btn" class="bg-blue-600 hover:bg-blue-700 text-white rounded p-1" title="New Notebook">
+    <aside class="w-72 bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shadow-xl z-20">
+        <div class="p-5 border-b border-slate-800/80 flex justify-between items-center bg-slate-950/50 backdrop-blur">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 via-purple-500 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-bold text-lg">
+                    📚
+                </div>
+                <h1 class="text-xl font-extrabold font-heading tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">BookLLM</h1>
+            </div>
+            <button id="new-notebook-btn" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-lg p-2 shadow-md shadow-indigo-500/25 transition duration-200 transform hover:scale-105 active:scale-95" title="Create New Notebook">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                 </svg>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto">
-            <ul id="notebook-list" class="flex flex-col">
+        
+        <div class="p-4 border-b border-slate-800/60 bg-slate-900/40">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <span>📁</span> Your Notebooks
+            </span>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <ul id="notebook-list" class="flex flex-col divide-y divide-slate-800/40">
                 <!-- Notebooks rendered here -->
-                <li class="p-4 text-gray-400 text-sm">Loading notebooks...</li>
+                <li class="p-4 text-slate-400 text-sm italic">Loading notebooks...</li>
             </ul>
+        </div>
+        
+        <div class="p-4 border-t border-slate-800/80 bg-slate-950/80 text-xs text-slate-400 flex items-center justify-between">
+            <span>⚡ Neon PG + Qdrant Vector DB</span>
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Connected"></span>
         </div>
     </aside>
 
     <!-- Main Application Container -->
-    <main class="flex-1 flex flex-col h-full bg-white relative">
+    <main class="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
         <!-- Empty State (When no notebook selected) -->
-        <div id="empty-state" class="absolute inset-0 flex items-center justify-center -z-10 bg-gray-50">
-            <div class="text-center">
-                <p class="text-xl text-gray-500">Select or create a notebook to begin</p>
+        <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-center p-6">
+            <div class="w-20 h-20 mb-6 rounded-2xl bg-gradient-to-tr from-indigo-500/10 via-purple-500/10 to-blue-500/10 border border-indigo-500/20 flex items-center justify-center text-4xl shadow-xl shadow-indigo-500/5 animate-bounce-slow">
+                ✨
+            </div>
+            <h3 class="text-2xl font-bold font-heading text-slate-800 tracking-tight">Select or Create a Notebook</h3>
+            <p class="text-slate-500 max-w-md mt-2 text-sm leading-relaxed">
+                Experience advanced RAG question answering and generate interactive study flashcards directly from your uploaded PDFs, TXT, SRT/VTT subtitle files, URLs, and YouTube lectures.
+            </p>
+            <div class="mt-6 flex items-center gap-2 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3.5 py-2 rounded-full border border-indigo-200 shadow-sm">
+                <span>💡 Tip:</span> Click the <strong>+</strong> icon in the sidebar to start!
             </div>
         </div>
 
         <!-- Notebook Workspace -->
-        <div id="main-content" class="hidden flex-1 flex flex-col h-full bg-white z-10">
-            <header class="p-6 border-b">
-                <h2 id="current-notebook-title" class="text-3xl font-bold text-gray-800">Notebook Title</h2>
+        <div id="main-content" class="hidden flex-1 flex flex-col h-full bg-white z-10 overflow-hidden">
+            <header class="py-4 px-6 border-b border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50"></span>
+                        <h2 id="current-notebook-title" class="text-2xl font-bold font-heading tracking-tight text-white">Notebook Title</h2>
+                    </div>
+                    <p class="text-xs text-indigo-200/80 mt-1 font-medium pl-5">AI Research Assistant & Study Intelligence Suite</p>
+                </div>
+                
+                <!-- Workspace Navigation Tab Bar -->
+                <nav class="flex items-center gap-1.5 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-inner" aria-label="Workspace view toggles">
+                    <button id="tab-chat" class="workspace-tab px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/30 font-heading" data-target="view-chat">
+                        <span>💬</span> Research & Sources
+                    </button>
+                    <button id="tab-study-hub" class="workspace-tab px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 flex items-center gap-2 font-heading" data-target="view-study">
+                        <span>🎓</span> Interactive Study Hub
+                        <span class="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-extrabold bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full shadow-sm ml-1 animate-pulse">NEW</span>
+                    </button>
+                </nav>
             </header>
             
-            <div class="flex-1 p-6 overflow-y-auto flex">
+            <!-- Tab 1: Chat & Sources (Research Workspace) -->
+            <div id="view-chat" class="flex-1 p-6 overflow-y-auto flex flex-col md:flex-row gap-6 bg-slate-50/50 custom-scrollbar">
                 <!-- Left Pane: Chat -->
-                <div class="flex-1 flex flex-col border-r pr-6">
-                    <div id="chat-messages" class="flex-1 border-2 border-gray-200 rounded-lg flex flex-col p-4 overflow-y-auto mb-4 bg-gray-50 space-y-4">
-                        <div class="text-center text-gray-400 mt-10">
-                            Ask a question about your uploaded sources!
+                <div class="flex-1 flex flex-col border-r border-slate-200 md:pr-6 min-h-[400px]">
+                    <div id="chat-messages" class="flex-1 border border-slate-200/80 rounded-2xl flex flex-col p-5 overflow-y-auto mb-4 bg-white shadow-sm space-y-4 custom-scrollbar">
+                        <div class="text-center text-slate-400 my-auto py-10">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-xl">💡</div>
+                            <p class="font-medium text-slate-600">Ask a question about your uploaded sources!</p>
+                            <p class="text-xs text-slate-400 mt-1">Our AI assistant combines facts across documents with strict numerical citations.</p>
                         </div>
                     </div>
-                    <div class="mt-auto flex space-x-2">
-                        <input type="text" id="chat-input" class="flex-1 border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Ask a question..." disabled>
-                        <button id="send-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition disabled:opacity-50" disabled>Send</button>
+                    <div class="mt-auto flex space-x-2.5">
+                        <input type="text" id="chat-input" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all disabled:bg-slate-100 disabled:text-slate-400" placeholder="Ask a question..." disabled>
+                        <button id="send-btn" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all shadow-md shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5" disabled>
+                            <span>Send</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform rotate-90" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Right Pane: Sources -->
-                <div class="flex-1 flex flex-col pl-6">
+                <div class="w-full md:w-80 lg:w-96 flex flex-col">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold">Sources</h3>
                         <div>
-                            <input type="file" id="file-upload" class="hidden" accept=".txt,.pdf">
-                            <button id="add-url-btn" class="bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200 transition text-sm font-medium mr-2">+ Add URL</button>
-                            <button id="add-source-btn" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 transition text-sm font-medium">+ Add File</button>
+                            <h3 class="text-lg font-bold font-heading text-slate-800 flex items-center gap-2">
+                                <span>📚</span> Knowledge Sources
+                            </h3>
+                            <p class="text-xs text-slate-500">Attach PDFs, TXT, SRT, VTT, or URLs</p>
+                        </div>
+                        <div>
+                            <input type="file" id="file-upload" class="hidden" accept=".txt,.pdf,.srt,.vtt">
+                            <div class="flex items-center gap-1.5">
+                                <button id="add-url-btn" class="bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg transition text-xs font-semibold flex items-center gap-1 shadow-sm">
+                                    <span>🌐</span> + URL
+                                </button>
+                                <button id="add-source-btn" class="bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition text-xs font-semibold flex items-center gap-1 shadow-sm shadow-indigo-500/20">
+                                    <span>📄</span> + File
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex-1 border-2 border-dashed border-gray-200 rounded-lg flex flex-col overflow-y-auto bg-gray-50 p-4">
-                        <ul id="source-list" class="space-y-2">
+                    <div class="flex-1 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col overflow-y-auto bg-slate-50/70 p-4 custom-scrollbar">
+                        <ul id="source-list" class="space-y-2.5">
                             <!-- Sources rendered here -->
                         </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Interactive Study Hub -->
+            <div id="view-study" class="hidden flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50/80 text-slate-800 space-y-10 custom-scrollbar">
+                <!-- Study Hub Hero Banner -->
+                <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-8 shadow-xl border border-indigo-500/20 relative overflow-hidden">
+                    <div class="absolute -right-16 -top-16 w-80 h-80 bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="max-w-3xl relative z-10">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold mb-4 uppercase tracking-wider">
+                            <span>✨ Powered by PostgreSQL JSONB & AI Summary Routing</span>
+                        </div>
+                        <h3 class="text-2xl sm:text-3xl font-extrabold font-heading mb-3 tracking-tight">
+                            Interactive Study Intelligence Hub
+                        </h3>
+                        <p class="text-indigo-200/90 text-sm sm:text-base leading-relaxed font-normal">
+                            Master your materials in seconds! Explore auto-curated executive document summaries, click interactive study questions to test the RAG AI, or flip 3D vocabulary and concept flashcards to solidify key insights.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Section 1: Executive Summaries & Topics Grid -->
+                <div>
+                    <div class="flex items-center justify-between mb-5 border-b border-slate-200 pb-3">
+                        <div>
+                            <h4 class="text-lg font-extrabold font-heading text-slate-900 flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-indigo-600 inline-block shadow-sm shadow-indigo-600/50"></span>
+                                Executive Source Summaries & Themes
+                            </h4>
+                            <p class="text-xs text-slate-500 mt-0.5">High-level synthesis and primary topics extracted during document indexing</p>
+                        </div>
+                        <span class="text-xs font-bold px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full border border-indigo-200 shadow-sm">Automated Curation</span>
+                    </div>
+                    <div id="study-summaries-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated by ui.js -->
+                        <div class="col-span-full text-center text-slate-400 py-10 italic bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+                            No active sources found. Upload a PDF, TXT, SRT/VTT subtitle file, or URL to generate study insights!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Interactive Study Questions Generator -->
+                <div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-5 border-b border-slate-200 pb-3 gap-2">
+                        <div>
+                            <h4 class="text-lg font-extrabold font-heading text-slate-900 flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-purple-600 inline-block shadow-sm shadow-purple-600/50"></span>
+                                Clickable RAG Study Questions
+                            </h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Click any generated prompt below to instantly jump into the chat and launch an AI inquiry!</p>
+                        </div>
+                        <span class="text-xs font-bold px-3 py-1 bg-purple-100 text-purple-800 rounded-full border border-purple-200 shadow-sm self-start">Interactive Launcher</span>
+                    </div>
+                    <div id="study-questions-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Populated by ui.js -->
+                        <div class="col-span-full text-center text-slate-400 py-10 italic bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+                            Generating conceptual study questions from source metadata...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Interactive 3D Vocabulary & Named Entity Flashcards -->
+                <div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-5 border-b border-slate-200 pb-3 gap-2">
+                        <div>
+                            <h4 class="text-lg font-extrabold font-heading text-slate-900 flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-emerald-600 inline-block shadow-sm shadow-emerald-600/50"></span>
+                                3D Interactive Concept & Entity Flashcards
+                            </h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Tap any flashcard to flip between terminology and action triggers to quiz the AI!</p>
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <button id="shuffle-cards-btn" class="text-xs bg-white hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-xl font-semibold border border-slate-300 shadow-sm transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5">
+                                <span>🔀</span> Shuffle Deck
+                            </button>
+                            <span class="text-xs font-bold px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200 shadow-sm">3D Flip Deck</span>
+                        </div>
+                    </div>
+                    <div id="study-flashcards-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 perspective-1000">
+                        <!-- Populated by ui.js -->
+                        <div class="col-span-full text-center text-slate-400 py-10 italic bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+                            Extracting vocabulary terms and prominent entities from your documents...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -78,13 +227,16 @@
     </main>
 
     <!-- Citation Modal -->
-    <div id="citation-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl w-3/4 max-w-2xl max-h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h3 id="modal-title" class="text-lg font-bold truncate">Source Title</h3>
-                <button id="modal-close" class="text-gray-500 hover:text-gray-800 font-bold text-xl leading-none">&times;</button>
+    <div id="citation-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden border border-slate-200 transform transition-all">
+            <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+                <div class="flex items-center gap-2 text-indigo-600 font-bold font-heading truncate">
+                    <span>📖</span>
+                    <h3 id="modal-title" class="text-lg text-slate-800 truncate">Source Title</h3>
+                </div>
+                <button id="modal-close" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-lg leading-none transition">&times;</button>
             </div>
-            <div class="p-4 overflow-y-auto flex-1 text-gray-700 whitespace-pre-wrap leading-relaxed" id="modal-content">
+            <div class="p-6 overflow-y-auto flex-1 text-slate-700 whitespace-pre-wrap leading-relaxed text-sm font-sans custom-scrollbar" id="modal-content">
                 Source text...
             </div>
         </div>
