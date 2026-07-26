@@ -16,7 +16,7 @@ export const state = {
         this.notebooks = notebooks;
         this.notify();
     },
-    
+
     setSources(sources) {
         this.sources = sources;
         this.notify();
@@ -56,14 +56,6 @@ export const state = {
         this.notify();
     },
 
-    updateNotebook(updatedNotebook) {
-        const index = this.notebooks.findIndex(n => n.id === updatedNotebook.id);
-        if (index !== -1) {
-            this.notebooks[index] = updatedNotebook;
-            this.notify();
-        }
-    },
-    
     getCurrentNotebook() {
         return this.notebooks.find(n => n.id === this.currentNotebookId);
     }

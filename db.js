@@ -18,6 +18,9 @@ async function testConnection() {
   try {
     const res = await pool.query('SELECT NOW()');
     console.log('Connected to PostgreSQL at:', res.rows[0].now);
+    // Automatic schema migration for Clerk Authentication support
+    await pool.query('ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS user_id VARCHAR(255);');
+    console.log('Verified user_id column in notebooks table.');
   } catch (error) {
     console.error('Database connection failed:', error.message);
   }

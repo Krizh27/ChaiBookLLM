@@ -8,8 +8,11 @@ async function init() {
       CREATE TABLE IF NOT EXISTS notebooks (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         name VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS user_id VARCHAR(255);
       
       CREATE TABLE IF NOT EXISTS sources (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

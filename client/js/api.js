@@ -1,8 +1,25 @@
 const API_BASE = '/api';
 
+async function getHeaders(customHeaders = {}) {
+    const headers = { ...customHeaders };
+    if (window.Clerk && window.Clerk.session) {
+        try {
+            const token = await window.Clerk.session.getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+        } catch (err) {
+            console.error("Error retrieving Clerk token:", err);
+        }
+    }
+    return headers;
+}
+
 export const api = {
     async getNotebooks() {
-        const response = await fetch(`${API_BASE}/notebooks`);
+        const response = await fetch(`${API_BASE}/notebooks`, {
+            headers: await getHeaders()
+        });
         if (!response.ok) throw new Error('Failed to fetch notebooks');
         return response.json();
     },
@@ -10,7 +27,7 @@ export const api = {
     async createNotebook(name) {
         const response = await fetch(`${API_BASE}/notebooks`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ name })
         });
         if (!response.ok) throw new Error('Failed to create notebook');
@@ -20,7 +37,7 @@ export const api = {
     async updateNotebook(id, name) {
         const response = await fetch(`${API_BASE}/notebooks/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ name })
         });
         if (!response.ok) throw new Error('Failed to update notebook');
@@ -29,14 +46,17 @@ export const api = {
 
     async deleteNotebook(id) {
         const response = await fetch(`${API_BASE}/notebooks/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: await getHeaders()
         });
         if (!response.ok) throw new Error('Failed to delete notebook');
         return response.json();
     },
 
     async getSources(notebookId) {
-        const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources`);
+        const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources`, {
+            headers: await getHeaders()
+        });
         if (!response.ok) throw new Error('Failed to fetch sources');
         return response.json();
     },
@@ -47,6 +67,7 @@ export const api = {
         
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources`, {
             method: 'POST',
+            headers: await getHeaders(),
             body: formData
         });
         if (!response.ok) throw new Error('Failed to upload source');
@@ -56,7 +77,7 @@ export const api = {
     async uploadUrl(notebookId, url) {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ url })
         });
         if (!response.ok) throw new Error('Failed to upload URL');
@@ -65,7 +86,8 @@ export const api = {
 
     async deleteSource(notebookId, sourceId) {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources/${sourceId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: await getHeaders()
         });
         if (!response.ok) throw new Error('Failed to delete source');
         return response.json();
@@ -73,14 +95,17 @@ export const api = {
 
     async reindexSource(notebookId, sourceId) {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources/${sourceId}/reindex`, {
-            method: 'POST'
+            method: 'POST',
+            headers: await getHeaders()
         });
         if (!response.ok) throw new Error('Failed to re-index source');
         return response.json();
     },
 
     async getChatHistory(notebookId) {
-        const response = await fetch(`${API_BASE}/notebooks/${notebookId}/chat`);
+        const response = await fetch(`${API_BASE}/notebooks/${notebookId}/chat`, {
+            headers: await getHeaders()
+        });
         if (!response.ok) throw new Error('Failed to fetch chat history');
         return response.json();
     },
@@ -92,7 +117,7 @@ export const api = {
     async askQuestionStream(notebookId, message, onToken = null, onMetadata = null) {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/chat`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ message })
         });
         if (!response.ok) throw new Error('Failed to fetch answer stream');
@@ -149,7 +174,7 @@ export const api = {
     async generateRoadmap(notebookId, topic, priorKnowledge = "") {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/roadmap`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ topic, priorKnowledge })
         });
         if (!response.ok) {
