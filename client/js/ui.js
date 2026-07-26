@@ -358,8 +358,33 @@ export const ui = {
             }`;
             statusBadge.textContent = source.indexing_status;
 
+            const reindexBtn = document.createElement('button');
+            reindexBtn.className = 'ml-2.5 text-slate-400 hover:text-indigo-600 font-normal text-sm leading-none px-1 transition duration-150 opacity-70 hover:opacity-100';
+            reindexBtn.textContent = '🔄';
+            reindexBtn.title = 'Re-index source (re-generate embeddings & Qdrant vectors)';
+            if (source.indexing_status === 'pending' || source.indexing_status === 'processing') {
+                reindexBtn.disabled = true;
+                reindexBtn.className += ' opacity-30 cursor-not-allowed';
+            } else {
+                reindexBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    try {
+                        statusBadge.className = 'ml-2 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-2xs bg-amber-100 text-amber-800 border border-amber-200 animate-pulse';
+                        statusBadge.textContent = 'processing';
+                        reindexBtn.disabled = true;
+                        reindexBtn.className = 'ml-2.5 text-slate-400 font-normal text-sm leading-none px-1 opacity-30 cursor-not-allowed';
+                        await api.reindexSource(state.currentNotebookId, source.id);
+                        source.indexing_status = 'processing';
+                        this.startSourcePolling(state.currentNotebookId);
+                    } catch (error) {
+                        alert('Error re-indexing source: ' + (error.message || error));
+                        this.renderMainArea();
+                    }
+                });
+            }
+
             const delBtn = document.createElement('button');
-            delBtn.className = 'ml-3 text-slate-400 hover:text-red-600 font-extrabold text-lg leading-none px-1 transition duration-150';
+            delBtn.className = 'ml-2.5 text-slate-400 hover:text-red-600 font-extrabold text-lg leading-none px-1 transition duration-150';
             delBtn.textContent = '×';
             delBtn.title = 'Delete source and vectors';
             delBtn.addEventListener('click', async (e) => {
@@ -370,9 +395,14 @@ export const ui = {
                 }
             });
 
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'flex items-center shrink-0';
+            actionsDiv.appendChild(statusBadge);
+            actionsDiv.appendChild(reindexBtn);
+            actionsDiv.appendChild(delBtn);
+
             li.appendChild(titleSpan);
-            li.appendChild(statusBadge);
-            li.appendChild(delBtn);
+            li.appendChild(actionsDiv);
             elements.sourceList.appendChild(li);
         });
         this.updateInputState();

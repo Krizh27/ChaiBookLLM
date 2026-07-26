@@ -1,21 +1,22 @@
-# Current Phase: Tier 1 Action Plan – Requirement 3 (Part 1): Notebook Rename UI 🏁 [COMPLETED]
+# Current Phase: Tier 1 Action Plan – Requirement 3 (Part 2): Source Re-index 🏁 [COMPLETED]
 
 ## Current Objective
-We have implemented the full **Notebook Rename UI** feature to achieve a perfect **10.0 / 10** score in Category 1 (Notebook Management). Users can now rename any active or inactive notebook dynamically without leaving their workspace or restarting the session. This brings our total assignment evaluation score to **113.5 / 130 (87.3%)**!
+We have completed the **Source Re-index** requirement in Category 2 (Source Ingestion)! Users can now effortlessly re-run the text extraction, chunking, AI embedding, and vector storage pipeline for any uploaded file or URL by clicking an interactive **🔄 Re-index** button. This safely removes previous vector chunks in Qdrant before regenerating fresh embeddings, avoiding duplicate vectors and recovering smoothly from interrupted sessions or updated models. Our assignment evaluation score now stands at **116.0 / 130 (89.2%)**!
 
 ## Files Involved
-- `client/js/api.js`: Added `updateNotebook(id, name)` method utilizing Express endpoint `PUT /api/notebooks/:id`.
-- `client/js/state.js`: Implemented `updateNotebook(updatedNotebook)` to mutate state cleanly in memory and trigger observer UI updates.
-- `client/index.html`: Added a styled interactive **✏️ Rename** button next to the active notebook title in the primary workspace header.
-- `client/js/ui.js`: Attached event handlers for header rename button and integrated an inline edit icon (`✏️`) directly alongside notebook list items in the sidebar.
-- `docs/MVP_AUDIT_REPORT.md`: Updated Category 1 score from 8.5/10 to 10/10.
+- `server/routes/sourceRoutes.js`: Exposed endpoint `POST /api/notebooks/:notebookId/sources/:sourceId/reindex`.
+- `server/controllers/sourceController.js`: Added `reindexSource` controller that verifies the source, calls `deleteBySourceId` to purge outdated vectors from Qdrant, resets PostgreSQL indexing status to `pending`, and re-invokes asynchronous `processSource`.
+- `client/js/api.js`: Created `api.reindexSource(notebookId, sourceId)`.
+- `client/js/ui.js`: Integrated an interactive **🔄 Re-index** button directly inside `renderSources`, which dynamically transitions the badge to an animated `processing` state and starts source polling until re-indexing completes.
+- `docs/MVP_AUDIT_REPORT.md`: Updated Category 2 score from 16/20 to 18.5/20.
 
 ## How to Test and Verify in Your Browser (`http://localhost:3000`)
-With your live server (`npm run dev`) running:
-1. Open or refresh `http://localhost:3000` in your web browser.
-2. **Method A (Active Workspace Header):** Look at the top left of the main dark blue workspace header next to the current notebook name. Click the **✏️ Rename** button, enter a new title, and press OK. Observe the title update instantly across the entire interface!
-3. **Method B (Sidebar List):** In the left sidebar notebook list, hover over any notebook item to see the **✏️** edit button next to the **×** delete button. Click it to rename any notebook effortlessly!
+With your live dev server (`npm run dev`) running:
+1. Open or refresh `http://localhost:3000` in your browser.
+2. Select any notebook that has uploaded sources (e.g., `chiman`).
+3. Look at the **Knowledge Sources** pane on the right. Next to any source with a `READY` or `ERROR` badge, click the blue/gray **🔄** (Re-index) icon located right before the **×** delete button!
+4. **Observe Live Re-indexing:** Watch the badge immediately shift to an amber pulsing `PROCESSING` state as old vectors are purged and fresh embeddings are calculated in the background, automatically switching back to `READY` once finished!
 
 ## Next Milestone
-Await user explicit approval before advancing to the final Tier 1 items: **Source Re-index & Filesystem Cleanup when deleting uploaded files**!
+Await user explicit approval before advancing to the final remaining Tier 1 Core Rubric requirement: **Filesystem cleanup when deleting uploaded files**!
 

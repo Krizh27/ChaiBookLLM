@@ -71,6 +71,14 @@ export const api = {
         return response.json();
     },
 
+    async reindexSource(notebookId, sourceId) {
+        const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources/${sourceId}/reindex`, {
+            method: 'POST'
+        });
+        if (!response.ok) throw new Error('Failed to re-index source');
+        return response.json();
+    },
+
     async getChatHistory(notebookId) {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/chat`);
         if (!response.ok) throw new Error('Failed to fetch chat history');

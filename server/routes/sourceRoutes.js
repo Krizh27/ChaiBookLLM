@@ -25,5 +25,6 @@ const upload = multer({ storage: storage });
 router.get('/', sourceController.getSources);
 router.post('/', upload.single('file'), sourceController.uploadSource);
 router.delete('/:sourceId', sourceController.deleteSource);
+router.post('/:sourceId/reindex', sourceController.reindexSource);
 
 export default router;

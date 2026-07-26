@@ -112,3 +112,40 @@ export const deleteSource = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete source' });
   }
 };
+
+export const reindexSource = async (req, res) => {
+  try {
+    const { notebookId, sourceId } = req.params;
+    
+    // Verify source exists in PostgreSQL
+    const result = await db.query(
+      'SELECT * FROM sources WHERE id = $1 AND notebook_id = $2',
+      [sourceId, notebookId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Source not found' });
+    }
+
+    // Clear existing vector points from Qdrant to avoid duplicate chunks
+    await deleteBySourceId(sourceId, notebookId).catch(err => {
+      console.error('Failed to delete old vectors during reindex:', err);
+    });
+
+    // Reset database indexing status to pending
+    const updateResult = await db.query(
+      'UPDATE sources SET indexing_status = $1, error_message = $2 WHERE id = $3 AND notebook_id = $4 RETURNING *',
+      ['pending', null, sourceId, notebookId]
+    );
+
+    // Trigger async extraction and embedding pipeline
+    processSource(notebookId, sourceId).catch(err => {
+      console.error('Unhandled error in reindex processSource:', err);
+    });
+
+    res.status(202).json(updateResult.rows[0]);
+  } catch (error) {
+    console.error('Error re-indexing source:', error);
+    res.status(500).json({ error: 'Failed to re-index source' });
+  }
+};
