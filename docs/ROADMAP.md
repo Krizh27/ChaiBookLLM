@@ -80,6 +80,7 @@ This document tracks the overall development progress, planned phases, and statu
   3. **Metadata Search & Shortlisting**: Score candidate videos against topic tags, keywords, named entities, and video descriptions in PostgreSQL.
   4. **Semantic Retrieval**: Execute Qdrant vector search strictly across shortlisted high-precision sources (falling back to notebook-wide retrieval if no metadata filters apply).
   5. **Cross-Video Retrieval**: Synthesize answers across multiple relevant video lectures while preserving granular citations and playback timestamps.
+- [x] Refactor retrieval pipeline into a unified `retrieveContext` service reused by Manual Chat, Study Hub Questions, and Personalized Learning Roadmaps, ensuring zero logic duplication.
 
 ---
 
