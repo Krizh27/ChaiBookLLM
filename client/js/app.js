@@ -58,17 +58,23 @@ async function initApp() {
                 }
             }
         } else {
-            console.warn('Clerk SDK not found on window, proceeding without auth UI.');
+            console.warn('Clerk SDK not found on window, skipping notebook fetch for unauthenticated user.');
+            return;
         }
 
         ui.init();
         
-        const notebooks = await api.getNotebooks();
-        state.setNotebooks(notebooks);
-        
-        if (notebooks.length > 0) {
-            state.setCurrentNotebook(notebooks[0].id);
+        if (window.Clerk && window.Clerk.user) {
+            const notebooks = await api.getNotebooks();
+            state.setNotebooks(notebooks);
+            
+            if (notebooks.length > 0) {
+                state.setCurrentNotebook(notebooks[0].id);
+            } else {
+                state.setCurrentNotebook(null);
+            }
         } else {
+            state.setNotebooks([]);
             state.setCurrentNotebook(null);
         }
     } catch (error) {

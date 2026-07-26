@@ -17,10 +17,20 @@ async function getHeaders(customHeaders = {}) {
 
 export const api = {
     async getNotebooks() {
+        if (window.Clerk && !window.Clerk.user) {
+            return [];
+        }
+        const headers = await getHeaders();
+        if (window.Clerk && !headers['Authorization']) {
+            return [];
+        }
         const response = await fetch(`${API_BASE}/notebooks`, {
-            headers: await getHeaders()
+            headers
         });
-        if (!response.ok) throw new Error('Failed to fetch notebooks');
+        if (!response.ok) {
+            if (response.status === 401) return [];
+            throw new Error('Failed to fetch notebooks');
+        }
         return response.json();
     },
 
