@@ -226,18 +226,32 @@
         </div>
     </main>
 
-    <!-- Citation Modal -->
-    <div id="citation-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 animate-fade-in">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden border border-slate-200 transform transition-all">
-            <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
-                <div class="flex items-center gap-2 text-indigo-600 font-bold font-heading truncate">
-                    <span>📖</span>
-                    <h3 id="modal-title" class="text-lg text-slate-800 truncate">Source Title</h3>
+    <!-- Source Viewer & Citation Modal -->
+    <div id="citation-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md hidden flex items-center justify-center z-50 p-3 sm:p-6 animate-fade-in">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden border border-slate-200 transform transition-all">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 bg-slate-900 text-white shrink-0">
+                <div class="flex items-center gap-3 font-heading truncate pr-4">
+                    <span id="modal-type-icon" class="text-2xl">📖</span>
+                    <div class="truncate">
+                        <div class="flex items-center gap-2">
+                            <span id="modal-type-badge" class="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded">Document</span>
+                            <span id="modal-chunk-badge" class="text-[10px] font-bold text-slate-400">Chunk Reference</span>
+                        </div>
+                        <h3 id="modal-title" class="text-lg font-bold text-white truncate mt-0.5">Source Title</h3>
+                    </div>
                 </div>
-                <button id="modal-close" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-lg leading-none transition">&times;</button>
+                <div class="flex items-center gap-3 shrink-0">
+                    <a id="modal-external-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
+                        <span>↗ Open in New Tab</span>
+                    </a>
+                    <button id="modal-close" class="w-9 h-9 rounded-full bg-slate-800 hover:bg-red-600/80 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xl leading-none transition shadow-sm">&times;</button>
+                </div>
             </div>
-            <div class="p-6 overflow-y-auto flex-1 text-slate-700 whitespace-pre-wrap leading-relaxed text-sm font-sans custom-scrollbar" id="modal-content">
-                Source text...
+            <!-- Source Viewer Dynamic Body -->
+            <div id="modal-content-container" class="flex-1 overflow-hidden flex flex-col bg-slate-100 relative">
+                <div id="modal-content" class="p-6 overflow-y-auto flex-1 text-slate-800 whitespace-pre-wrap leading-relaxed text-sm font-sans bg-white m-4 rounded-xl border border-slate-200 shadow-sm custom-scrollbar">
+                    Loading original source material...
+                </div>
             </div>
         </div>
     </div>

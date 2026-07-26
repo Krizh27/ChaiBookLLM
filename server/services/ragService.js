@@ -13,13 +13,14 @@ const openai = new OpenAI({
 export async function askQuestion(notebookId, query) {
   // 1. Pre-Retrieval Routing Triage: Fetch source summaries from PostgreSQL
   const sourcesResult = await db.query(
-    "SELECT id, title, metadata FROM sources WHERE notebook_id = $1 AND indexing_status = 'ready'",
+    "SELECT id, title, type, file_path_or_url, metadata FROM sources WHERE notebook_id = $1 AND indexing_status = 'ready'",
     [notebookId]
   );
 
+  const sourceMap = new Map(sourcesResult.rows.map(s => [s.id, s]));
   const routing = await routeQuery(query, sourcesResult.rows);
 
-  // If the router determines the question combines incompatible topics or is completely out of scope, short-circuit immediately without touching vector storage!
+  // If the router determines the question combines incompatible topics or is completely out of scope, short-circuit immediately!
   if (routing.decision === 'unrelated_combination' || routing.decision === 'out_of_scope') {
     return {
       answer: routing.explanation || "Your question combines unrelated concepts or asks about topics not covered by this notebook's sources.",
@@ -54,13 +55,25 @@ export async function askQuestion(notebookId, query) {
 
   const answer = completion.choices[0].message.content;
 
-  // 5. Map citations for the frontend
-  const citations = searchResults.map((result, index) => ({
-    citation_id: index + 1,
-    source_id: result.payload.source_id,
-    source_title: result.payload.source_title,
-    text_snippet: result.payload.original_text
-  }));
+  // 5. Map enriched citations for the frontend Source Viewer
+  const citations = searchResults.map((result, index) => {
+    const srcData = sourceMap.get(result.payload.source_id) || {};
+    let urlOrPath = srcData.file_path_or_url || '';
+    if (urlOrPath && !urlOrPath.startsWith('http://') && !urlOrPath.startsWith('https://')) {
+      // Normalize Windows backslashes and prepend web slash for static serving
+      urlOrPath = '/' + urlOrPath.replace(/\\/g, '/').replace(/^\/?/, '');
+    }
+
+    return {
+      citation_id: index + 1,
+      source_id: result.payload.source_id,
+      source_title: result.payload.source_title,
+      source_type: srcData.type || 'text',
+      url_or_path: urlOrPath,
+      chunk_index: result.payload.chunk_index || 0,
+      text_snippet: result.payload.original_text
+    };
+  });
 
   return {
     answer,

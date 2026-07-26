@@ -42,6 +42,10 @@ Instead of cluttering conversation chat with non-critical notes, discovered issu
 - **Symptom**: Source metadata summaries stored in PostgreSQL JSONB (`summary`, `main_topics`, `keywords`, `named_entities`) were only utilized for backend AI routing without empowering user-facing study interactions.
 - **Resolution**: Implemented a tabbed **Interactive Study Hub** directly in the frontend workspace, providing automated executive summary cards, clickable study questions that bridge to the chat RAG AI, and interactive 3D vocabulary flip cards with instant AI explanation triggers.
 
+### 08. Limited Raw Snippet Inspection Without Document Context [RESOLVED IN MVP REFINEMENT FEATURE 1]
+- **Symptom**: Clicking citation reference chips (`Ref [1]`) merely opened a static text box displaying the isolated database snippet without enabling users to verify the passage inside the full document or media file.
+- **Resolution**: Implemented **Feature 1 (Source Viewer)**. Added `/uploads` Express static file serving, enriched backend RAG citations with PostgreSQL source metadata (`type`, `file_path_or_url`, `chunk_index`), and upgraded the frontend modal into an interactive inspection suite capable of full PDF loading, auto-scrolling & highlighting TXT/SRT/VTT files, timestamped YouTube video playing, and Text-Fragment webpage previewing.
+
 ---
 
 ## Active Bugs

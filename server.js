@@ -9,8 +9,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the client directory
+// Serve static files from the client directory and uploads directory
 app.use(express.static('client'));
+app.use('/uploads', express.static('uploads'));
 
 import notebookRoutes from './server/routes/notebookRoutes.js';
 import sourceRoutes from './server/routes/sourceRoutes.js';

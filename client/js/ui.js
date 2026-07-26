@@ -17,6 +17,11 @@ const elements = {
     modalTitle: document.getElementById('modal-title'),
     modalContent: document.getElementById('modal-content'),
     modalClose: document.getElementById('modal-close'),
+    modalTypeIcon: document.getElementById('modal-type-icon'),
+    modalTypeBadge: document.getElementById('modal-type-badge'),
+    modalChunkBadge: document.getElementById('modal-chunk-badge'),
+    modalExternalLink: document.getElementById('modal-external-link'),
+    modalContentContainer: document.getElementById('modal-content-container'),
     // Workspace Navigation & Study Hub Elements
     tabChat: document.getElementById('tab-chat'),
     tabStudyHub: document.getElementById('tab-study-hub'),
@@ -47,12 +52,14 @@ export const ui = {
 
         elements.modalClose.addEventListener('click', () => {
             elements.citationModal.classList.add('hidden');
+            if (elements.modalContentContainer) elements.modalContentContainer.innerHTML = '';
         });
         
         // Close modal when clicking outside
         elements.citationModal.addEventListener('click', (e) => {
             if (e.target === elements.citationModal) {
                 elements.citationModal.classList.add('hidden');
+                if (elements.modalContentContainer) elements.modalContentContainer.innerHTML = '';
             }
         });
 
@@ -637,7 +644,7 @@ export const ui = {
             formattedContent = formattedContent.replace(/\[(\d+)\]/g, (match, num) => {
                 const citation = citations.find(c => c.citation_id === parseInt(num));
                 if (citation) {
-                    return `<button class="citation-chip inline-flex items-center justify-center px-2 py-0.5 ml-1 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs transition" title="${citation.source_title}" data-title="${citation.source_title}" data-text="${encodeURIComponent(citation.text_snippet)}">Ref [${num}]</button>`;
+                    return `<button class="citation-chip inline-flex items-center justify-center px-2 py-0.5 ml-1 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs transition" title="${citation.source_title}" data-citation="${encodeURIComponent(JSON.stringify(citation))}">Ref [${num}]</button>`;
                 }
                 return match;
             });
@@ -650,14 +657,211 @@ export const ui = {
         const chips = bubble.querySelectorAll('.citation-chip');
         chips.forEach(chip => {
             chip.addEventListener('click', (e) => {
-                const title = e.target.getAttribute('data-title');
-                const text = decodeURIComponent(e.target.getAttribute('data-text'));
-                
-                elements.modalTitle.textContent = title;
-                elements.modalContent.textContent = text;
-                elements.citationModal.classList.remove('hidden');
+                const citationData = e.target.getAttribute('data-citation');
+                if (citationData) {
+                    const citation = JSON.parse(decodeURIComponent(citationData));
+                    this.openSourceViewer(citation);
+                } else {
+                    const title = e.target.getAttribute('data-title');
+                    const text = decodeURIComponent(e.target.getAttribute('data-text'));
+                    this.openSourceViewer({ source_title: title, text_snippet: text, source_type: 'text' });
+                }
             });
         });
+    },
+
+    async openSourceViewer(citation) {
+        if (!elements.citationModal) return;
+
+        // Populate header badges
+        elements.modalTitle.textContent = citation.source_title || 'Unknown Source';
+        const type = citation.source_type || 'text';
+        
+        const typeIcons = { pdf: '📕', youtube: '📺', url: '🌐', subtitle: '🎞️', text: '📄' };
+        if (elements.modalTypeIcon) elements.modalTypeIcon.textContent = typeIcons[type] || '📄';
+        if (elements.modalTypeBadge) elements.modalTypeBadge.textContent = type.toUpperCase();
+        if (elements.modalChunkBadge) elements.modalChunkBadge.textContent = `Chunk #${citation.chunk_index !== undefined ? citation.chunk_index + 1 : 'N/A'}`;
+        
+        // Hide external link by default until set
+        if (elements.modalExternalLink) {
+            elements.modalExternalLink.classList.add('hidden');
+            elements.modalExternalLink.href = '#';
+        }
+
+        elements.citationModal.classList.remove('hidden');
+
+        // Clear dynamic container and show loading state
+        if (elements.modalContentContainer) {
+            elements.modalContentContainer.innerHTML = '<div class="flex-1 flex items-center justify-center p-8 text-slate-500 font-medium italic animate-pulse">Opening source viewer...</div>';
+        }
+
+        const urlOrPath = citation.url_or_path || '';
+        const snippet = citation.text_snippet || '';
+
+        // 1. PDF HANDLING: Open PDF viewer with search & jump parameters
+        if (type === 'pdf' && urlOrPath) {
+            const firstWords = snippet.split(/\s+/).slice(0, 8).join(' ');
+            const searchParam = encodeURIComponent(firstWords);
+            const pdfUrl = `${urlOrPath}#page=1&search=${searchParam}`;
+
+            if (elements.modalExternalLink) {
+                elements.modalExternalLink.href = pdfUrl;
+                elements.modalExternalLink.classList.remove('hidden');
+            }
+
+            elements.modalContentContainer.innerHTML = `
+                <div class="bg-indigo-50 border-b border-indigo-100 px-6 py-2.5 text-xs text-indigo-900 flex justify-between items-center shrink-0">
+                    <span>💡 <strong>PDF Source Inspector:</strong> Loaded full PDF file. Use browser find or scroll to verify cited text.</span>
+                    <span class="font-mono bg-white px-2 py-0.5 rounded border border-indigo-200 text-indigo-700 truncate max-w-[300px]" title="${this.escapeHtml(snippet)}">Snippet: "${this.escapeHtml(snippet.slice(0, 60))}..."</span>
+                </div>
+                <iframe src="${pdfUrl}" class="w-full flex-1 border-0 bg-slate-200"></iframe>
+            `;
+            return;
+        }
+
+        // 2. YOUTUBE HANDLING: Open video at calculated timestamp
+        if (type === 'youtube' && urlOrPath) {
+            // Estimate video start seconds from chunk index (~60s per 150-word chunk)
+            const chunkIdx = citation.chunk_index || 0;
+            const startSecs = chunkIdx * 60;
+            
+            const match = urlOrPath.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+            const videoId = match ? match[1] : null;
+
+            const youtubeWatchUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${startSecs}s` : urlOrPath;
+            if (elements.modalExternalLink) {
+                elements.modalExternalLink.href = youtubeWatchUrl;
+                elements.modalExternalLink.classList.remove('hidden');
+            }
+
+            if (videoId) {
+                const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&start=${startSecs}`;
+                elements.modalContentContainer.innerHTML = `
+                    <div class="bg-red-50 border-b border-red-100 px-6 py-2.5 text-xs text-red-900 flex justify-between items-center shrink-0">
+                        <span>🎬 <strong>YouTube Timestamp Inspector:</strong> Jumped to estimated timestamp ~${Math.floor(startSecs / 60)}m ${startSecs % 60}s based on chunk offset.</span>
+                        <span class="text-[11px] font-bold text-red-700">Playing chunk #${chunkIdx + 1}</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center justify-center p-4 bg-slate-950 overflow-y-auto">
+                        <div class="w-full max-w-4xl aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-800 shrink-0">
+                            <iframe src="${embedUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                        <div class="mt-4 p-4 bg-slate-900 text-slate-200 text-xs rounded-xl border border-slate-800 w-full max-w-4xl overflow-y-auto max-h-36">
+                            <strong class="text-indigo-400 block mb-1 uppercase tracking-wider text-[10px]">Retrieved Transcript Chunk:</strong>
+                            <p class="leading-relaxed whitespace-pre-wrap">${this.escapeHtml(snippet)}</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+        }
+
+        // 3. WEBSITE URL HANDLING: Open webpage preview with snippet highlight box & Text Fragment URL
+        if (type === 'url' && urlOrPath) {
+            const firstWords = snippet.split(/\s+/).slice(0, 8).join(' ');
+            const textFragmentUrl = `${urlOrPath}#:~:text=${encodeURIComponent(firstWords)}`;
+
+            if (elements.modalExternalLink) {
+                elements.modalExternalLink.href = textFragmentUrl;
+                elements.modalExternalLink.classList.remove('hidden');
+            }
+
+            elements.modalContentContainer.innerHTML = `
+                <div class="bg-indigo-50 border-b border-indigo-200 p-4 shrink-0 shadow-xs">
+                    <div class="flex items-center justify-between gap-4 mb-2">
+                        <span class="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                            <span>🌐</span> Live Web Source Preview & Reference Snippet
+                        </span>
+                        <a href="${textFragmentUrl}" target="_blank" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-md shadow-sm transition">↗ Open Full Page with Highlight</a>
+                    </div>
+                    <div class="p-3 bg-white border border-indigo-100 rounded-lg text-xs text-slate-800 shadow-sm max-h-28 overflow-y-auto">
+                        <span class="font-extrabold text-indigo-600 uppercase text-[10px] tracking-wider block mb-1">Cited Snippet from AI Database:</span>
+                        <mark class="bg-amber-200 text-slate-900 px-1 py-0.5 rounded font-medium">${this.escapeHtml(snippet)}</mark>
+                    </div>
+                </div>
+                <div class="flex-1 bg-white flex flex-col relative overflow-hidden">
+                    <div class="p-2.5 text-center text-[11px] text-slate-500 bg-slate-100 border-b border-slate-200">
+                        Note: If the external server restricts embedded frame loading, click "Open Full Page with Highlight" above.
+                    </div>
+                    <iframe src="${urlOrPath}" class="w-full flex-1 border-0"></iframe>
+                </div>
+            `;
+            return;
+        }
+
+        // 4. TEXT / VTT / SRT SUBTITLE HANDLING: Fetch full source file, scroll to chunk & highlight
+        if (urlOrPath && (type === 'text' || type === 'subtitle' || urlOrPath.startsWith('/uploads/'))) {
+            if (elements.modalExternalLink) {
+                elements.modalExternalLink.href = urlOrPath;
+                elements.modalExternalLink.classList.remove('hidden');
+            }
+
+            try {
+                const resp = await fetch(urlOrPath);
+                if (resp.ok) {
+                    const fullText = await resp.text();
+                    const cleanSnippet = snippet.trim();
+                    const snippetIdx = fullText.indexOf(cleanSnippet);
+                    
+                    let highlightedHtml = '';
+                    if (snippetIdx !== -1) {
+                        const before = this.escapeHtml(fullText.substring(0, snippetIdx));
+                        const matched = this.escapeHtml(cleanSnippet);
+                        const after = this.escapeHtml(fullText.substring(snippetIdx + cleanSnippet.length));
+                        highlightedHtml = `${before}<mark id="cited-chunk-mark" class="bg-amber-300 text-slate-950 font-bold px-1.5 py-1 rounded shadow-md border-2 border-amber-500 animate-pulse">${matched}</mark>${after}`;
+                    } else {
+                        const first30 = cleanSnippet.slice(0, 30);
+                        const approxIdx = fullText.indexOf(first30);
+                        if (approxIdx !== -1) {
+                            const before = this.escapeHtml(fullText.substring(0, approxIdx));
+                            const matched = this.escapeHtml(fullText.substring(approxIdx, approxIdx + cleanSnippet.length));
+                            const after = this.escapeHtml(fullText.substring(approxIdx + cleanSnippet.length));
+                            highlightedHtml = `${before}<mark id="cited-chunk-mark" class="bg-amber-300 text-slate-950 font-bold px-1.5 py-1 rounded shadow-md border-2 border-amber-500 animate-pulse">${matched}</mark>${after}`;
+                        } else {
+                            highlightedHtml = `<div class="p-4 mb-4 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl text-xs"><strong class="font-bold block mb-1">Cited Chunk Reference:</strong><mark class="bg-amber-200 px-1 py-0.5 rounded font-mono">${this.escapeHtml(cleanSnippet)}</mark></div>` + this.escapeHtml(fullText);
+                        }
+                    }
+
+                    elements.modalContentContainer.innerHTML = `
+                        <div class="bg-slate-800 border-b border-slate-700 px-6 py-2.5 text-xs text-slate-300 flex justify-between items-center shrink-0">
+                            <span>📄 <strong>Document Reader:</strong> Showing full text. Automatically scrolled & highlighted cited passage.</span>
+                            <button onclick="document.getElementById('cited-chunk-mark')?.scrollIntoView({ behavior: 'smooth', block: 'center' })" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-2.5 py-1 rounded text-[11px] shadow transition cursor-pointer">🎯 Jump to Citation</button>
+                        </div>
+                        <div class="p-6 overflow-y-auto flex-1 text-slate-800 whitespace-pre-wrap leading-relaxed text-sm font-sans bg-white m-4 rounded-xl border border-slate-200 shadow-sm custom-scrollbar">
+                            ${highlightedHtml}
+                        </div>
+                    `;
+
+                    setTimeout(() => {
+                        const markElem = document.getElementById('cited-chunk-mark');
+                        if (markElem) {
+                            markElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 100);
+                    return;
+                }
+            } catch (err) {
+                console.error("Failed to fetch static text file:", err);
+            }
+        }
+
+        // Fallback: Display raw snippet if original file fetch fails
+        elements.modalContentContainer.innerHTML = `
+            <div class="bg-slate-200 px-6 py-3 text-xs text-slate-700 font-semibold border-b border-slate-300">
+                Displaying stored database chunk snippet:
+            </div>
+            <div id="modal-content" class="p-6 overflow-y-auto flex-1 text-slate-800 whitespace-pre-wrap leading-relaxed text-sm font-sans bg-white m-4 rounded-xl border border-slate-200 shadow-sm custom-scrollbar">
+                <mark class="bg-amber-200 text-slate-900 px-2 py-1 rounded block leading-relaxed">${this.escapeHtml(snippet)}</mark>
+            </div>
+        `;
+    },
+
+    escapeHtml(str) {
+        return (str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     },
 
     formatContent(content) {

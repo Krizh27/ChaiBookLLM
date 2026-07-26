@@ -1,31 +1,29 @@
-# Current Phase: Phase 8 – Interactive Study Hub & Premium UI Polish 🏁 [COMPLETED]
+# Current Phase: MVP Refinement Sprint – Feature 1: Source Viewer 🏁 [COMPLETED]
 
 ## Current Objective
-Verify the newly implemented **Interactive Study Hub** and modern UI upgrades in the V1 MVP. Harnessing PostgreSQL JSONB source metadata (`summary`, `main_topics`, `keywords`, `named_entities`), the frontend now provides an interactive study suite complete with automated executive summaries, clickable study questions, and 3D concept flashcards!
+Implement **Feature 1 (Source Viewer)** as part of our V1 MVP Refinement Sprint. Clicking any citation chip (`Ref [N]`) now immediately launches an interactive multi-format source inspector capable of viewing full PDFs, auto-scrolling & highlighting text/subtitle files, embedding timestamped YouTube lectures, and previewing web pages with text-fragment deep links.
 
 ## Files Involved
-- `client/index.html`: Added Google Fonts (Outfit & Inter), workspace navigation tabs, and Study Hub containers.
-- `client/css/styles.css`: Implemented vanilla CSS micro-animations, glassmorphism cards, and 3D flip flashcard transform rules.
-- `client/js/ui.js`: Added workspace tab toggling, metadata evaluation, interactive chat query bridges, and dynamic card rendering.
-- `docs/PHASE_08.md`: Comprehensive breakdown of feature architecture, design decisions, and testing checklists.
+- `server.js`: Added Express static serving for the `/uploads` directory.
+- `server/services/ragService.js`: Enriched returned citation objects by merging Qdrant search results with PostgreSQL source properties (`source_type`, `url_or_path`, `chunk_index`).
+- `client/index.html`: Upgraded the citation modal layout into an expansive, dynamic multi-format inspection suite.
+- `client/js/ui.js`: Created `openSourceViewer(citation)` to route inspection viewports dynamically for PDF, Text, Subtitles, YouTube, and Website sources.
+- `docs/PHASE_09_FEATURE_1.md`: Architectural documentation and test instructions for Feature 1.
 
 ## How to Test and Verify in Your Browser (`http://localhost:3000`)
-Your express server and frontend are running live! Follow these quick tests to verify the experience:
+Your application server (`npm run dev`) is live! Verify Feature 1 with these testing steps:
 
-### Step 1: Check Modern Aesthetics
-1. Open or refresh `http://localhost:3000`. Notice the upgraded modern font family (**Outfit** & **Inter**) and harmonious slate/indigo gradient themes!
-2. Click into any existing notebook or create a new one and attach a text file, PDF, or website URL.
+### Step 1: Ask a Question with Citations
+1. Open or refresh `http://localhost:3000` and select a notebook with existing uploaded sources.
+2. Ask a research question in the chat bar and wait for the AI assistant to respond with citation reference chips (e.g. `Ref [1]`, `Ref [2]`).
 
-### Step 2: Explore the Interactive Study Hub
-1. In the active notebook header, click the **🎓 Interactive Study Hub** tab in the top right navigation bar.
-2. Observe the **Executive Source Summaries** section displaying high-level AI overviews, topic tags, and prominent entities extracted during source indexing.
-3. Test the **Clickable RAG Study Questions**: click any generated question card and observe how the application automatically toggles back to the **💬 Research & Sources** tab, injects the question into your chat box, and triggers an intelligent cited response!
-
-### Step 3: Flip 3D Concept Flashcards
-1. Return to the **🎓 Interactive Study Hub** tab and scroll to the bottom section.
-2. Click on any **3D Concept Flashcard** to test the tactile 3D CSS rotation.
-3. Click the **⚡ Ask AI to Explain** button on the reverse side of a flashcard to automatically launch a deep-dive concept query directly into the RAG chat!
+### Step 2: Test Multi-Format Source Inspection
+Click on any citation chip to test the Source Viewer:
+- **For TXT / SRT / VTT Files**: Notice how the full document loads into the modal viewer, automatically scrolls down to the exact retrieved chunk, and wraps the cited passage in an animated yellow highlight tag (`<mark>`)!
+- **For PDF Files**: The full built-in PDF document reader loads directly inside the viewer iframe, allowing immediate document search and verification.
+- **For YouTube Videos**: An embedded video player launches directly at the estimated second timestamp (`chunk_index * 60s`), letting you listen to the exact lecture segment!
+- **For Web URLs**: Displays a live web preview accompanied by a high-visibility citation snippet box and an **↗ Open in New Tab** button featuring automatic Text Fragment deep-linking!
 
 ## Next Milestone
-Our core application is completely equipped with best-in-class AI conversational research capabilities and interactive educational study tools!
+Await user confirmation before initiating **Feature 2 — Better Citation UX**!
 
