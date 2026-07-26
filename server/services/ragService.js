@@ -10,6 +10,104 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+/**
+ * Multi-Stage Retrieval Strategy for YouTube Playlists & Documents
+ * Prioritizes Video Title Matching, Chapter/Timestamp Matching, Metadata Shortlisting, and Semantic Vector Retrieval.
+ */
+async function executeMultiStageRetrieval(query, sources, routerSelectedIds, notebookId, queryVector) {
+  const normQuery = query.toLowerCase().trim();
+  const titleMatches = new Set();
+  const chapterMatches = new Set();
+  const metadataMatches = new Set();
+  let prioritizedChapter = null;
+
+  // Stage 1: Video Title Matching
+  for (const src of sources) {
+    const normTitle = (src.title || '').toLowerCase().replace(/[^\w\s]/g, '').trim();
+    const significantWords = normTitle.split(/\s+/).filter(w => w.length > 3 && !['youtube', 'video', 'tutorial', 'part', 'with', 'from', 'about', 'lecture'].includes(w));
+    
+    if (normTitle && normTitle.length > 3 && normQuery.includes(normTitle)) {
+      titleMatches.add(src.id);
+    } else if (significantWords.length >= 2 && significantWords.every(w => normQuery.includes(w))) {
+      titleMatches.add(src.id);
+    }
+  }
+  if (titleMatches.size > 0) {
+    console.log(`[Multi-Stage Retrieval] Stage 1 (Title Match) active: ${Array.from(titleMatches).join(', ')}`);
+  }
+
+  // Stage 2: Chapter / Timestamp Matching
+  for (const src of sources) {
+    const meta = typeof src.metadata === 'string' ? JSON.parse(src.metadata) : (src.metadata || {});
+    const chapters = meta.chapters || [];
+    for (const chap of chapters) {
+      const normChap = (chap.title || '').toLowerCase().trim();
+      if (normChap.length > 3 && normQuery.includes(normChap)) {
+        chapterMatches.add(src.id);
+        prioritizedChapter = { sourceId: src.id, title: chap.title, start: chap.start_seconds || 0, timeStr: chap.timestamp_str };
+        break;
+      }
+    }
+  }
+  if (chapterMatches.size > 0) {
+    console.log(`[Multi-Stage Retrieval] Stage 2 (Chapter Match) active: chapter "${prioritizedChapter.title}" in source ${prioritizedChapter.sourceId}`);
+  }
+
+  // Stage 3: Metadata Search (Shortlist candidate videos before vector search)
+  const candidateIds = new Set([...titleMatches, ...chapterMatches]);
+  if (candidateIds.size === 0) {
+    const queryTokens = normQuery.split(/\s+/).filter(w => w.length > 2);
+    for (const src of sources) {
+      const meta = typeof src.metadata === 'string' ? JSON.parse(src.metadata) : (src.metadata || {});
+      let hits = 0;
+      const desc = (meta.description || '').toLowerCase();
+      const summary = (meta.summary || '').toLowerCase();
+      const topics = (meta.main_topics || []).map(t => t.toLowerCase()).join(' ');
+      const keywords = (meta.keywords || []).map(k => k.toLowerCase()).join(' ');
+      const entities = (meta.named_entities || []).map(e => e.toLowerCase()).join(' ');
+      const fullText = `${src.title.toLowerCase()} ${desc} ${summary} ${topics} ${keywords} ${entities}`;
+
+      queryTokens.forEach(token => {
+        if (fullText.includes(token)) hits++;
+      });
+      if (hits >= Math.max(1, Math.floor(queryTokens.length * 0.4))) {
+        metadataMatches.add(src.id);
+      }
+    }
+    if (metadataMatches.size > 0) {
+      console.log(`[Multi-Stage Retrieval] Stage 3 (Metadata Search) active: short-listed ${metadataMatches.size} source(s)`);
+      metadataMatches.forEach(id => candidateIds.add(id));
+    }
+  }
+
+  // Combine our high-precision metadata shortlist with router selections for comprehensive coverage
+  let finalSourceFilter = null;
+  if (candidateIds.size > 0) {
+    finalSourceFilter = Array.from(candidateIds);
+  } else if (routerSelectedIds && routerSelectedIds.length > 0) {
+    // Stage 4 Fallback: If no direct title/chapter/metadata keyword match exists, use router or notebook-wide semantic search
+    finalSourceFilter = routerSelectedIds;
+  }
+
+  // Stage 4 & 5: Semantic Vector Search and Cross-Video Combination
+  // Fetch up to 8 relevant vector chunks across the shortlisted (or cross-video) sources
+  let searchResults = await searchByNotebook(queryVector, notebookId, 8, finalSourceFilter);
+  
+  // If we found a direct chapter timestamp match in Stage 2, prioritize/boost vector chunks from that section
+  if (prioritizedChapter) {
+    searchResults.sort((a, b) => {
+      const aIsChap = (a.payload.source_id === prioritizedChapter.sourceId && 
+                       (a.payload.text || '').includes(prioritizedChapter.timeStr.split(':')[0] + ':')) ? 1 : 0;
+      const bIsChap = (b.payload.source_id === prioritizedChapter.sourceId && 
+                       (b.payload.text || '').includes(prioritizedChapter.timeStr.split(':')[0] + ':')) ? 1 : 0;
+      if (aIsChap !== bIsChap) return bIsChap - aIsChap;
+      return b.score - a.score;
+    });
+  }
+
+  return searchResults;
+}
+
 export async function askQuestionStream(notebookId, query, onToken = null, onMetadata = null) {
   // 1. Pre-Retrieval Routing Triage: Fetch source summaries from PostgreSQL
   const sourcesResult = await db.query(
@@ -34,8 +132,8 @@ export async function askQuestionStream(notebookId, query, onToken = null, onMet
   // 2. Embed the user query
   const queryVector = await generateQueryEmbedding(query);
 
-  // 3. Search Qdrant, restricting search exclusively to the selected source IDs
-  const searchResults = await searchByNotebook(queryVector, notebookId, 5, routing.selected_source_ids);
+  // 3. Multi-Stage Retrieval Strategy: Title match -> Chapter match -> Metadata Search -> Semantic & Cross-Video Retrieval
+  const searchResults = await executeMultiStageRetrieval(query, sourcesResult.rows, routing.selected_source_ids, notebookId, queryVector);
 
   // If no context found in the selected sources
   if (searchResults.length === 0) {
