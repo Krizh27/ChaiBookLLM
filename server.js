@@ -9,7 +9,10 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(clerkMiddleware());
+const publishableKey = process.env.CLERK_PUBLISHABLE_KEY || 'pk_test_bWFpbi1tYW50aXMtODkuY2xlcmsuYWNjb3VudHMuZGV2JA';
+const secretKey = process.env.CLERK_SECRET_KEY || 'sk_test_mvaatyJ17eitXtz7Oy8zfGOE2EVhN9updgP9pWQ29E';
+
+app.use(clerkMiddleware({ publishableKey, secretKey }));
 
 import fs from 'fs';
 if (!fs.existsSync('uploads')) {

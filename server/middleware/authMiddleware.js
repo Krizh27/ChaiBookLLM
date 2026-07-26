@@ -1,10 +1,12 @@
 import db from '../../db.js';
+import { getAuth } from '@clerk/express';
 
 /**
  * Middleware to verify that the requesting user owns the notebook specified in req.params.notebookId or req.params.id.
  */
 export const requireNotebookOwner = async (req, res, next) => {
-  const userId = req.auth?.userId;
+  const auth = getAuth(req);
+  const userId = auth?.userId || req.auth?.userId;
   const notebookId = req.params.notebookId || req.params.id;
 
   if (!userId) {

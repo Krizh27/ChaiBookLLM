@@ -1,8 +1,14 @@
 import db from '../../db.js';
+import { getAuth } from '@clerk/express';
+
+const getUserId = (req) => {
+  const auth = getAuth(req);
+  return auth?.userId || req.auth?.userId;
+};
 
 export const getNotebooks = async (req, res) => {
   try {
-    const userId = req.auth?.userId;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: Authentication required' });
     }
@@ -20,7 +26,7 @@ export const getNotebooks = async (req, res) => {
 export const getNotebookById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.auth?.userId;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: Authentication required' });
     }
@@ -43,7 +49,7 @@ export const getNotebookById = async (req, res) => {
 export const createNotebook = async (req, res) => {
   try {
     const { name } = req.body;
-    const userId = req.auth?.userId;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: Authentication required' });
     }
@@ -67,7 +73,7 @@ export const updateNotebook = async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
-    const userId = req.auth?.userId;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: Authentication required' });
     }
@@ -95,7 +101,7 @@ export const updateNotebook = async (req, res) => {
 export const deleteNotebook = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.auth?.userId;
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: Authentication required' });
     }
