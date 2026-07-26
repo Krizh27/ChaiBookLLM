@@ -1,5 +1,6 @@
 import fs from 'fs';
 import db from '../../db.js';
+import { getAuth } from '@clerk/express';
 import { processSource } from '../services/indexingService.js';
 import { deleteBySourceId } from '../repositories/qdrantRepo.js';
 
@@ -28,13 +29,24 @@ export const uploadSource = async (req, res) => {
     }
 
     // Verify parent notebook exists in PostgreSQL before attaching a source
-    const userId = req.auth?.userId;
-    const notebookCheck = await db.query('SELECT id FROM notebooks WHERE id = $1 AND user_id = $2', [notebookId, userId]);
+    const auth = getAuth(req);
+    const userId = auth?.userId || req.auth?.userId;
+    const notebookCheck = await db.query(
+      'SELECT id, user_id FROM notebooks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+      [notebookId, userId]
+    );
     if (notebookCheck.rows.length === 0) {
       if (file && fs.existsSync(file.path)) {
         fs.unlinkSync(file.path); // Clean up orphaned uploaded file from disk
       }
       return res.status(404).json({ error: 'Notebook not found or access denied' });
+    }
+
+    if (!notebookCheck.rows[0].user_id) {
+      await db.query(
+        'UPDATE notebooks SET user_id = $1 WHERE id = $2 AND user_id IS NULL',
+        [userId, notebookId]
+      );
     }
 
     let type = 'text';

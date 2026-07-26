@@ -75,7 +75,7 @@ export async function processSource(notebookId, sourceId) {
       rawText = $('body').text().replace(/\s+/g, ' ').trim();
     } else if (source.type === 'youtube') {
       try {
-        const matchId = filePath.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+        const matchId = filePath.match(/(?:youtu\.be\/|(?:www\.|m\.)?youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/);
         const videoId = matchId ? matchId[1] : filePath;
         const browserHeaders = {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',

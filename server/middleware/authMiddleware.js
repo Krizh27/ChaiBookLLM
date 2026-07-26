@@ -19,12 +19,19 @@ export const requireNotebookOwner = async (req, res, next) => {
 
   try {
     const result = await db.query(
-      'SELECT id FROM notebooks WHERE id = $1 AND user_id = $2',
+      'SELECT id, user_id FROM notebooks WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
       [notebookId, userId]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Notebook not found or access denied' });
+    }
+
+    if (!result.rows[0].user_id) {
+      await db.query(
+        'UPDATE notebooks SET user_id = $1 WHERE id = $2 AND user_id IS NULL',
+        [userId, notebookId]
+      );
     }
 
     next();
