@@ -84,11 +84,11 @@ export const api = {
         return response.json();
     },
     
-    async uploadUrl(notebookId, url) {
+    async uploadUrl(notebookId, url, title = '') {
         const response = await fetch(`${API_BASE}/notebooks/${notebookId}/sources`, {
             method: 'POST',
             headers: await getHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ url })
+            body: JSON.stringify({ url, title })
         });
         if (!response.ok) throw new Error('Failed to upload URL');
         return response.json();

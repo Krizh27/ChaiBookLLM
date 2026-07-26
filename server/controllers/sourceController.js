@@ -129,13 +129,19 @@ export const uploadSource = async (req, res) => {
         );
 
         let sourceRow;
+        const customTitle = req.body.title ? req.body.title.trim() : '';
         if (checkResult.rows.length > 0) {
           sourceRow = checkResult.rows[0];
+          if (customTitle && sourceRow.title !== customTitle) {
+            await db.query('UPDATE sources SET title = $1 WHERE id = $2', [customTitle, sourceRow.id]);
+            sourceRow.title = customTitle;
+          }
         } else {
+          const initialTitle = customTitle || singleUrl;
           const result = await db.query(
             `INSERT INTO sources (notebook_id, type, title, file_path_or_url, indexing_status) 
              VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [notebookId, urlType, singleUrl, singleUrl, 'pending']
+            [notebookId, urlType, initialTitle, singleUrl, 'pending']
           );
           sourceRow = result.rows[0];
           

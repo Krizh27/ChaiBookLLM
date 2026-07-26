@@ -25,13 +25,14 @@ async function executeMultiStageRetrieval(query, sources, routerSelectedIds, not
   // Stage 1: Video Title Matching
   for (const src of sources) {
     const normTitle = (src.title || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
-    const significantWords = normTitle.split(/\s+/).filter(w => w.length > 3 && !['youtube', 'video', 'tutorial', 'part', 'with', 'from', 'about', 'lecture'].includes(w));
+    const significantWords = normTitle.split(/\s+/).filter(w => w.length > 2 && !['youtube', 'video', 'tutorial', 'part', 'with', 'from', 'about', 'lecture'].includes(w));
+    const queryTokens = normQuery.split(/\s+/).filter(w => w.length > 2 && !['how', 'what', 'does', 'tell', 'show', 'give', 'about', 'the'].includes(w));
     
     // Extract title without file extension
     const titleWithoutExt = normTitle.replace(/\s(txt|pdf|srt|vtt)$/, '').trim();
     if (titleWithoutExt.length > 3 && normQuery.includes(titleWithoutExt)) {
       titleMatches.add(src.id);
-    } else if (significantWords.length > 0 && significantWords.every(w => normQuery.includes(w))) {
+    } else if (significantWords.length > 0 && queryTokens.some(qt => normTitle.includes(qt))) {
       titleMatches.add(src.id);
     }
   }

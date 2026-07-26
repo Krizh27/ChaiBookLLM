@@ -248,9 +248,17 @@ export const ui = {
                 confirmText: 'Import'
             });
             if (url && url.trim()) {
+                const title = await this.showPrompt({
+                    title: 'Source Title (Optional)',
+                    subtitle: 'Metadata Optimization',
+                    message: 'Enter a descriptive title for this source (or leave blank to auto-detect):',
+                    placeholder: 'e.g. Future of DSA interviews',
+                    icon: '📝',
+                    confirmText: 'Continue'
+                });
                 try {
                     this.updateInputState(true, "Reading and parsing URL source...");
-                    const newSource = await api.uploadUrl(currentNotebookId, url.trim());
+                    const newSource = await api.uploadUrl(currentNotebookId, url.trim(), title ? title.trim() : '');
                     state.addSource(newSource);
                     this.showToast('URL imported successfully and indexing started!', 'success');
                 } catch (error) {

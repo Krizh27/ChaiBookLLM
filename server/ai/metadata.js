@@ -63,6 +63,15 @@ export async function routeQuery(query, sources) {
     };
   }
 
+  // Fast path for single-source notebooks: always target the uploaded source
+  if (sources.length === 1) {
+    return {
+      selected_source_ids: [sources[0].id],
+      decision: "single_or_related",
+      explanation: null
+    };
+  }
+
   // Construct a concise catalog of uploaded documents and their AI summaries
   let catalogText = "";
   sources.forEach((s, i) => {
