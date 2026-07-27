@@ -18,9 +18,12 @@ async function testConnection() {
   try {
     const res = await pool.query('SELECT NOW()');
     console.log('Connected to PostgreSQL at:', res.rows[0].now);
-    // Automatic schema migration for Clerk Authentication support
+    // Automatic schema migration for Clerk Authentication support and Transparency System
     await pool.query('ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS user_id VARCHAR(255);');
-    console.log('Verified user_id column in notebooks table.');
+    await pool.query('ALTER TABLE sources ADD COLUMN IF NOT EXISTS quality_score VARCHAR(30) DEFAULT \'good\';');
+    await pool.query('ALTER TABLE sources ADD COLUMN IF NOT EXISTS quality_reason TEXT;');
+    await pool.query('ALTER TABLE sources ADD COLUMN IF NOT EXISTS indexing_summary JSONB;');
+    console.log('Verified schema columns in notebooks and sources tables.');
   } catch (error) {
     console.error('Database connection failed:', error.message);
   }

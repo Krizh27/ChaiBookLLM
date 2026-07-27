@@ -14,8 +14,8 @@ export async function generateSourceMetadata(title, rawText) {
     // Truncate sample text to ~15,000 characters to keep evaluation fast and cost-effective
     const textSample = rawText.slice(0, 15000);
 
-    const systemPrompt = `You are an expert technical indexer and data curator.
-Your job is to analyze the provided document text and extract lightweight metadata in strict JSON format.
+    const systemPrompt = `You are an expert document indexer and content curator.
+Your job is to analyze the provided document text and extract lightweight metadata in strict JSON format accurately based ONLY on the provided text.
 
 Required JSON object properties:
 - summary: A concise 2-3 sentence overview of what this source covers.

@@ -144,6 +144,10 @@
 
 /* Mobile Responsive Overrides */
 @media (max-width: 768px) {
+    #app-sidebar {
+        max-width: 85vw;
+    }
+
     .flip-card {
         height: 160px;
     }

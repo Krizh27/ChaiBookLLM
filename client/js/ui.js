@@ -39,6 +39,11 @@ const elements = {
     mobileSidebarToggle: document.getElementById('mobile-sidebar-toggle'),
     closeSidebarBtn: document.getElementById('close-sidebar-btn'),
     sidebarBackdrop: document.getElementById('sidebar-backdrop'),
+    emptyMobileSidebarToggle: document.getElementById('empty-mobile-sidebar-toggle'),
+    emptyCreateNotebookBtn: document.getElementById('empty-create-notebook-btn'),
+    emptyCreateNotebookTopBtn: document.getElementById('empty-create-notebook-top-btn'),
+    emptyOpenSidebarBtn: document.getElementById('empty-open-sidebar-btn'),
+    emptyTipBadge: document.getElementById('empty-tip-badge'),
     // Roadmap Elements
     roadmapTopic: document.getElementById('roadmap-topic'),
     roadmapKnowledge: document.getElementById('roadmap-knowledge'),
@@ -47,7 +52,23 @@ const elements = {
     roadmapContent: document.getElementById('roadmap-content'),
     roadmapHeaderTitle: document.getElementById('roadmap-header-title'),
     roadmapHeaderSummary: document.getElementById('roadmap-header-summary'),
-    roadmapStepsList: document.getElementById('roadmap-steps-list')
+    roadmapStepsList: document.getElementById('roadmap-steps-list'),
+    // Source Details Modal Elements
+    sourceDetailsModal: document.getElementById('source-details-modal'),
+    sdCloseBtn: document.getElementById('sd-close-btn'),
+    sdTypeIcon: document.getElementById('sd-type-icon'),
+    sdQualityBadge: document.getElementById('sd-quality-badge'),
+    sdTypeBadge: document.getElementById('sd-type-badge'),
+    sdTitle: document.getElementById('sd-title'),
+    sdReasonBox: document.getElementById('sd-reason-box'),
+    sdReasonText: document.getElementById('sd-reason-text'),
+    sdMetricTranscriptStatus: document.getElementById('sd-metric-transcript-status'),
+    sdMetricCaptions: document.getElementById('sd-metric-captions'),
+    sdMetricChars: document.getElementById('sd-metric-chars'),
+    sdMetricChunks: document.getElementById('sd-metric-chunks'),
+    sdMetricVectors: document.getElementById('sd-metric-vectors'),
+    sdMetricFeatures: document.getElementById('sd-metric-features'),
+    sdTimeline: document.getElementById('sd-timeline')
 };
 
 export const ui = {
@@ -190,14 +211,35 @@ export const ui = {
         if (elements.mobileSidebarToggle) {
             elements.mobileSidebarToggle.addEventListener('click', () => this.toggleMobileSidebar(true));
         }
+        if (elements.emptyMobileSidebarToggle) {
+            elements.emptyMobileSidebarToggle.addEventListener('click', () => this.toggleMobileSidebar(true));
+        }
+        if (elements.emptyOpenSidebarBtn) {
+            elements.emptyOpenSidebarBtn.addEventListener('click', () => this.toggleMobileSidebar(true));
+        }
+        if (elements.emptyTipBadge) {
+            elements.emptyTipBadge.addEventListener('click', () => this.toggleMobileSidebar(true));
+        }
         if (elements.closeSidebarBtn) {
             elements.closeSidebarBtn.addEventListener('click', () => this.toggleMobileSidebar(false));
         }
         if (elements.sidebarBackdrop) {
             elements.sidebarBackdrop.addEventListener('click', () => this.toggleMobileSidebar(false));
         }
+        if (elements.sdCloseBtn) {
+            elements.sdCloseBtn.addEventListener('click', () => {
+                if (elements.sourceDetailsModal) elements.sourceDetailsModal.classList.add('hidden');
+            });
+        }
+        if (elements.sourceDetailsModal) {
+            elements.sourceDetailsModal.addEventListener('click', (e) => {
+                if (e.target === elements.sourceDetailsModal) {
+                    elements.sourceDetailsModal.classList.add('hidden');
+                }
+            });
+        }
 
-        elements.newNotebookBtn.addEventListener('click', async () => {
+        const handleCreateNotebook = async () => {
             const name = await this.showPrompt({
                 title: 'Create New Notebook',
                 subtitle: 'Workspace Setup',
@@ -211,12 +253,23 @@ export const ui = {
                     const newNotebook = await api.createNotebook(name.trim());
                     // Use unified addition and selection to prevent firing asynchronous renders on the old notebook
                     state.addAndSelectNotebook(newNotebook);
+                    this.toggleMobileSidebar(false);
                     this.showToast(`Notebook "${newNotebook.name}" created successfully!`, 'success');
                 } catch (error) {
                     this.showToast('Error creating notebook: ' + error.message, 'error');
                 }
             }
-        });
+        };
+
+        if (elements.newNotebookBtn) {
+            elements.newNotebookBtn.addEventListener('click', handleCreateNotebook);
+        }
+        if (elements.emptyCreateNotebookBtn) {
+            elements.emptyCreateNotebookBtn.addEventListener('click', handleCreateNotebook);
+        }
+        if (elements.emptyCreateNotebookTopBtn) {
+            elements.emptyCreateNotebookTopBtn.addEventListener('click', handleCreateNotebook);
+        }
 
         if (elements.renameNotebookBtn) {
             elements.renameNotebookBtn.addEventListener('click', async () => {
@@ -544,7 +597,21 @@ export const ui = {
                     this.renderMessage('user', msg.content);
                 } else {
                     const msgId = this.renderMessage('assistant', msg.content);
-                    this.updateMessage(msgId, msg.content, msg.citations);
+                    let citationList = [];
+                    let confidence = null;
+                    let confidenceExplanation = '';
+
+                    if (msg.citations) {
+                        if (Array.isArray(msg.citations)) {
+                            citationList = msg.citations;
+                        } else if (typeof msg.citations === 'object') {
+                            citationList = msg.citations.citations || [];
+                            confidence = msg.citations.answer_confidence || null;
+                            confidenceExplanation = msg.citations.confidence_explanation || '';
+                        }
+                    }
+
+                    this.updateMessage(msgId, msg.content, citationList, confidence, confidenceExplanation);
                 }
             });
         } catch (error) {
@@ -594,18 +661,53 @@ export const ui = {
             titleSpan.className = 'font-semibold text-slate-800 text-sm truncate flex-1 flex items-center gap-2.5';
             
             const icon = source.type === 'pdf' ? '📕' : source.type === 'youtube' ? '📺' : source.type === 'url' ? '🌐' : source.type === 'subtitle' ? '🎞️' : '📄';
-            titleSpan.innerHTML = `<span class="text-base">${icon}</span><span class="truncate group-hover:text-indigo-600 transition">${source.title}</span>`;
+            titleSpan.innerHTML = `<span class="text-base">${icon}</span><span class="truncate group-hover:text-indigo-600 transition" title="${source.title}">${source.title}</span>`;
 
-            const statusBadge = document.createElement('span');
-            statusBadge.className = `ml-2 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-2xs ${
-                source.indexing_status === 'ready' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                source.indexing_status === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
-                'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse'
-            }`;
-            statusBadge.textContent = source.indexing_status;
+            // Quality Badge
+            const quality = source.quality_score || (source.indexing_status === 'ready' ? 'good' : source.indexing_status === 'error' ? 'failed' : 'pending');
+            const qualityBadge = document.createElement('span');
+            
+            if (quality === 'excellent') {
+                qualityBadge.className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs cursor-pointer';
+                qualityBadge.innerHTML = '🟢 Excellent';
+                qualityBadge.title = source.quality_reason || 'Full transcript, timestamps & AI metadata';
+            } else if (quality === 'good') {
+                qualityBadge.className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs cursor-pointer';
+                qualityBadge.innerHTML = '🟡 Good';
+                qualityBadge.title = source.quality_reason || 'Complete transcript & clean indexing';
+            } else if (quality === 'fair') {
+                qualityBadge.className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs cursor-pointer';
+                qualityBadge.innerHTML = '🟠 Fair';
+                qualityBadge.title = source.quality_reason || 'Short transcript snippet';
+            } else if (quality === 'limited') {
+                qualityBadge.className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200 shadow-2xs cursor-pointer';
+                qualityBadge.innerHTML = '🔴 Limited';
+                qualityBadge.title = source.quality_reason || 'Metadata Only - Captions Unavailable on YouTube';
+            } else if (quality === 'failed' || source.indexing_status === 'error') {
+                qualityBadge.className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider bg-slate-200 text-slate-800 border border-slate-300 shadow-2xs cursor-pointer';
+                qualityBadge.innerHTML = '⚫ Failed';
+                qualityBadge.title = source.error_message || 'Indexing error occurred';
+            } else {
+                qualityBadge.className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 animate-pulse';
+                qualityBadge.innerHTML = '⏳ Processing';
+            }
+            qualityBadge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openSourceDetailsModal(source);
+            });
+
+            // Details Info Button
+            const detailsBtn = document.createElement('button');
+            detailsBtn.className = 'ml-2 text-slate-400 hover:text-indigo-600 font-bold text-xs leading-none px-1.5 py-1 rounded bg-slate-50 hover:bg-indigo-50 border border-slate-200 transition duration-150 flex items-center gap-1 cursor-pointer';
+            detailsBtn.innerHTML = `<span>ℹ️</span><span class="hidden sm:inline">Details</span>`;
+            detailsBtn.title = 'View Granular Indexing Summary & Processing Timeline';
+            detailsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openSourceDetailsModal(source);
+            });
 
             const reindexBtn = document.createElement('button');
-            reindexBtn.className = 'ml-2.5 text-slate-400 hover:text-indigo-600 font-normal text-sm leading-none px-1 transition duration-150 opacity-70 hover:opacity-100';
+            reindexBtn.className = 'ml-2 text-slate-400 hover:text-indigo-600 font-normal text-sm leading-none px-1 transition duration-150 opacity-70 hover:opacity-100 cursor-pointer';
             reindexBtn.textContent = '🔄';
             reindexBtn.title = 'Re-index source (re-generate embeddings & Qdrant vectors)';
             if (source.indexing_status === 'pending' || source.indexing_status === 'processing') {
@@ -615,10 +717,10 @@ export const ui = {
                 reindexBtn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     try {
-                        statusBadge.className = 'ml-2 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-2xs bg-amber-100 text-amber-800 border border-amber-200 animate-pulse';
-                        statusBadge.textContent = 'processing';
+                        qualityBadge.className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-2xs bg-amber-100 text-amber-800 border border-amber-200 animate-pulse';
+                        qualityBadge.textContent = 'processing';
                         reindexBtn.disabled = true;
-                        reindexBtn.className = 'ml-2.5 text-slate-400 font-normal text-sm leading-none px-1 opacity-30 cursor-not-allowed';
+                        reindexBtn.className = 'ml-2 text-slate-400 font-normal text-sm leading-none px-1 opacity-30 cursor-not-allowed';
                         await api.reindexSource(state.currentNotebookId, source.id);
                         source.indexing_status = 'processing';
                         this.startSourcePolling(state.currentNotebookId);
@@ -630,7 +732,7 @@ export const ui = {
             }
 
             const delBtn = document.createElement('button');
-            delBtn.className = 'ml-2.5 text-slate-400 hover:text-red-600 font-extrabold text-lg leading-none px-1 transition duration-150';
+            delBtn.className = 'ml-2 text-slate-400 hover:text-red-600 font-extrabold text-lg leading-none px-1 transition duration-150 cursor-pointer';
             delBtn.textContent = '×';
             delBtn.title = 'Delete source and vectors';
             delBtn.addEventListener('click', async (e) => {
@@ -656,7 +758,8 @@ export const ui = {
 
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'flex items-center shrink-0';
-            actionsDiv.appendChild(statusBadge);
+            actionsDiv.appendChild(qualityBadge);
+            actionsDiv.appendChild(detailsBtn);
             actionsDiv.appendChild(reindexBtn);
             actionsDiv.appendChild(delBtn);
 
@@ -665,6 +768,92 @@ export const ui = {
             elements.sourceList.appendChild(li);
         });
         this.updateInputState();
+    },
+
+    openSourceDetailsModal(source) {
+        if (!elements.sourceDetailsModal) return;
+
+        const icon = source.type === 'pdf' ? '📕' : source.type === 'youtube' ? '📺' : source.type === 'url' ? '🌐' : source.type === 'subtitle' ? '🎞️' : '📄';
+        if (elements.sdTypeIcon) elements.sdTypeIcon.textContent = icon;
+        if (elements.sdTitle) elements.sdTitle.textContent = source.title;
+        if (elements.sdTypeBadge) elements.sdTypeBadge.textContent = source.type.toUpperCase();
+
+        const quality = source.quality_score || (source.indexing_status === 'ready' ? 'good' : 'failed');
+        if (elements.sdQualityBadge) {
+            elements.sdQualityBadge.className = `px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                quality === 'excellent' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                quality === 'good' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                quality === 'fair' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                quality === 'limited' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                'bg-slate-700 text-slate-300 border border-slate-600'
+            }`;
+            elements.sdQualityBadge.textContent = `${quality.toUpperCase()} QUALITY`;
+        }
+
+        if (elements.sdReasonText) {
+            elements.sdReasonText.textContent = source.quality_reason || 'Source extracted and indexed cleanly.';
+        }
+
+        const summary = typeof source.indexing_summary === 'string' ? JSON.parse(source.indexing_summary) : (source.indexing_summary || {});
+
+        if (elements.sdMetricTranscriptStatus) {
+            elements.sdMetricTranscriptStatus.textContent = (summary.transcript_status || (source.type === 'youtube' ? 'unavailable' : 'not_applicable')).toUpperCase();
+        }
+        if (elements.sdMetricCaptions) {
+            const lang = (summary.transcript_language || 'none').toUpperCase();
+            const capType = summary.caption_type ? (summary.caption_type === 'auto_generated' ? 'Auto-Generated' : summary.caption_type === 'manual' ? 'Manual' : 'None') : 'None';
+            elements.sdMetricCaptions.textContent = `${lang} (${capType})`;
+        }
+        if (elements.sdMetricChars) {
+            elements.sdMetricChars.textContent = `${(summary.character_count || 0).toLocaleString()} chars`;
+        }
+        if (elements.sdMetricChunks) {
+            elements.sdMetricChunks.textContent = `${summary.chunk_count || 0} Chunks`;
+        }
+        if (elements.sdMetricVectors) {
+            elements.sdMetricVectors.textContent = `${summary.vector_count || 0} Vectors`;
+        }
+        if (elements.sdMetricFeatures) {
+            const timeTag = summary.has_timestamps ? 'Timestamps' : 'No Timestamps';
+            const chapTag = summary.has_chapters ? ' + Chapters' : '';
+            elements.sdMetricFeatures.textContent = timeTag + chapTag;
+        }
+
+        // Render Step-by-Step Processing Timeline
+        if (elements.sdTimeline) {
+            elements.sdTimeline.innerHTML = '';
+            const steps = summary.steps || [
+                { name: 'Uploading Source', status: 'completed' },
+                { name: 'Extracting Content', status: 'completed' },
+                { name: 'Chunking Text', status: 'completed' },
+                { name: 'Generating Embeddings', status: 'completed' },
+                { name: 'Uploading to Qdrant', status: 'completed' }
+            ];
+
+            steps.forEach((step) => {
+                const stepRow = document.createElement('div');
+                stepRow.className = 'flex items-center justify-between py-1.5 border-b border-slate-100 last:border-none text-xs';
+                
+                const isCompleted = step.status === 'completed';
+                const isFailed = step.status === 'failed';
+                const isProcessing = step.status === 'processing';
+                const isNotApp = step.status === 'not_applicable';
+
+                const icon = isCompleted ? '✅' : isFailed ? '❌' : isProcessing ? '⏳' : isNotApp ? '⚪' : '🕒';
+                const statusColor = isCompleted ? 'text-emerald-700 font-semibold' : isFailed ? 'text-rose-600 font-bold' : isProcessing ? 'text-amber-600 font-bold animate-pulse' : 'text-slate-400';
+
+                stepRow.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span>${icon}</span>
+                        <span class="font-medium text-slate-700">${step.name}</span>
+                    </div>
+                    <span class="text-[10px] uppercase font-extrabold tracking-wider ${statusColor}">${step.status}</span>
+                `;
+                elements.sdTimeline.appendChild(stepRow);
+            });
+        }
+
+        elements.sourceDetailsModal.classList.remove('hidden');
     },
 
     // ==========================================
@@ -744,7 +933,7 @@ export const ui = {
             if (topics.length > 0) {
                 generatedQuestions.push({
                     sourceTitle: source.title,
-                    question: `Explain the fundamental concepts and architecture of ${topics[0]} as detailed in ${source.title}.`,
+                    question: `Explain the fundamental concepts and main principles of ${topics[0]} as detailed in ${source.title}.`,
                     tag: 'Core Topic Quiz'
                 });
             }
@@ -921,6 +1110,8 @@ export const ui = {
             const loadingId = this.renderMessage('assistant', 'Analyzing sources and routing query...', true);
             let isFirstToken = true;
             let streamCitations = [];
+            let streamConfidence = 'good';
+            let streamConfidenceExp = '';
 
             const response = await api.askQuestionStream(
                 notebookId, 
@@ -936,12 +1127,20 @@ export const ui = {
                     }
                     this.updateStreamingMessage(loadingId, fullAnswer);
                 },
-                (citations) => {
+                (citations, answer_confidence, confidence_explanation) => {
                     streamCitations = citations;
+                    if (answer_confidence) streamConfidence = answer_confidence;
+                    if (confidence_explanation) streamConfidenceExp = confidence_explanation;
                 }
             );
             
-            this.updateMessage(loadingId, response.answer, response.citations || streamCitations);
+            this.updateMessage(
+                loadingId, 
+                response.answer, 
+                response.citations || streamCitations, 
+                response.answer_confidence || streamConfidence, 
+                response.confidence_explanation || streamConfidenceExp
+            );
         } catch (error) {
             console.error(error);
             this.renderMessage('assistant', 'Sorry, I encountered an error while communicating with the AI server.');
@@ -979,7 +1178,7 @@ export const ui = {
         return id;
     },
 
-    updateMessage(id, content, citations) {
+    updateMessage(id, content, citations, answerConfidence = null, confidenceExplanation = '') {
         const div = document.getElementById(id);
         if (!div) return;
         
@@ -999,6 +1198,21 @@ export const ui = {
             });
         }
         
+        // Render Answer Confidence Indicator Pill
+        if (answerConfidence) {
+            let badgeHtml = '';
+            if (answerConfidence === 'excellent') {
+                badgeHtml = `<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]"><span class="px-2.5 py-0.5 rounded-full font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs cursor-help" title="${confidenceExplanation || 'Full transcript, timestamps & rich metadata'}">🟢 Answer Confidence: Excellent</span><span class="text-slate-400 font-medium">${citations ? citations.length : 0} Sources Cited</span></div>`;
+            } else if (answerConfidence === 'good') {
+                badgeHtml = `<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]"><span class="px-2.5 py-0.5 rounded-full font-extrabold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs cursor-help" title="${confidenceExplanation || 'Answer grounded in extracted source text'}">🟡 Answer Confidence: Good</span><span class="text-slate-400 font-medium">${citations ? citations.length : 0} Sources Cited</span></div>`;
+            } else if (answerConfidence === 'fair') {
+                badgeHtml = `<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]"><span class="px-2.5 py-0.5 rounded-full font-extrabold bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs cursor-help" title="${confidenceExplanation || 'Partial transcript or short snippets used'}">🟠 Answer Confidence: Fair</span><span class="text-slate-400 font-medium">${citations ? citations.length : 0} Sources Cited</span></div>`;
+            } else if (answerConfidence === 'limited') {
+                badgeHtml = `<div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]"><span class="px-2.5 py-0.5 rounded-full font-extrabold bg-rose-100 text-rose-800 border border-rose-200 shadow-2xs cursor-help" title="${confidenceExplanation || 'One or more sources relied on metadata only because captions were unavailable'}">🔴 Answer Confidence: Limited (Metadata Only)</span><span class="text-slate-400 font-medium">${citations ? citations.length : 0} Sources Cited</span></div>`;
+            }
+            formattedContent += badgeHtml;
+        }
+
         bubble.innerHTML = formattedContent;
         elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 

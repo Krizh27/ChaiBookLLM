@@ -17,11 +17,15 @@ ChaiBookLLM transforms static documents and multimedia into an interactive resea
    - **Text & Subtitles (.txt, .srt, .vtt):** Loads the full document, wraps the cited passage in an animated yellow highlight tag (`<mark>`), and smoothly scrolls directly down to the reference.
    - **YouTube Lectures:** Launches an auto-playing embedded YouTube video player directly at the calculated lecture timestamp!
    - **Webpage URLs:** Displays a live web preview alongside a highlighted reference box and provides a modern browser **Text-Fragment Deep Link** (`#:~:text=...`) to open external web pages with native highlighting.
-4. **Interactive Study Hub:** Automatically converts document metadata into an educational workbench containing:
+4. **Source Quality & Transparency Layer (NotebookLM-Style):**
+   - **Quality Score Rating:** Automatically evaluates every uploaded source and assigns a deterministic Quality Score: 🟢 `Excellent` (Full transcript, timestamps & AI metadata), 🟡 `Good` (Complete text & standard metadata), 🟠 `Fair` (Partial transcript or short content), 🔴 `Limited` (Video metadata only when closed captions were unavailable on YouTube), and ⚫ `Failed`.
+   - **Source Details & Timeline Modal:** An interactive modal exposing granular metrics (vectors, chunks, character count, language, caption type, timestamp status) and step-by-step processing history.
+   - **Answer Confidence Indicators:** Dynamically calculates an Answer Confidence pill (🟢 Excellent, 🟡 Good, 🟠 Fair, 🔴 Limited) on AI responses derived directly from the quality of cited sources.
+5. **Interactive Study Hub:** Automatically converts document metadata into an educational workbench containing:
    - **Executive Source Summaries:** High-level AI overviews, topic tags, and prominent named entities.
    - **Clickable RAG Study Questions:** Curated deep-dive research prompts that bridge directly into the AI conversational chat when clicked.
    - **3D Concept Flashcards:** Interactive vocabulary and terminology flashcards with tactile 3D CSS flip animations and a built-in *⚡ Ask AI to Explain* trigger!
-5. **Zero Framework Bloat:** Clean Separation of Concerns utilizing modern HTML5, Vanilla CSS3 with glassmorphic styling, and ES6 JavaScript Modules adhering to a unified state Observer Pattern.
+6. **Zero Framework Bloat:** Clean Separation of Concerns utilizing modern HTML5, Vanilla CSS3 with glassmorphic styling, and ES6 JavaScript Modules adhering to a unified state Observer Pattern.
 
 ---
 

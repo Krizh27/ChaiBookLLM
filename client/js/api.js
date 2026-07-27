@@ -162,13 +162,16 @@ export const api = {
                         const data = JSON.parse(jsonStr);
                         if (data.type === 'metadata') {
                             citations = data.citations || [];
-                            if (onMetadata) onMetadata(citations);
+                            const conf = data.answer_confidence || 'good';
+                            const confExp = data.confidence_explanation || '';
+                            if (onMetadata) onMetadata(citations, conf, confExp);
                         } else if (data.type === 'token') {
                             answer += data.token;
                             if (onToken) onToken(data.token, answer);
                         } else if (data.type === 'done') {
                             if (data.answer !== undefined) answer = data.answer;
                             if (data.citations) citations = data.citations;
+                            if (onMetadata) onMetadata(citations, data.answer_confidence, data.confidence_explanation);
                         } else if (data.type === 'error') {
                             throw new Error(data.error || 'Stream error');
                         }

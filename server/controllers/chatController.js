@@ -81,18 +81,24 @@ export const chat = async (req, res) => {
       (token) => {
         res.write(`data: ${JSON.stringify({ type: 'token', token })}\n\n`);
       },
-      (citations) => {
-        res.write(`data: ${JSON.stringify({ type: 'metadata', citations })}\n\n`);
+      (citations, answer_confidence, confidence_explanation) => {
+        res.write(`data: ${JSON.stringify({ type: 'metadata', citations, answer_confidence, confidence_explanation })}\n\n`);
       }
     );
 
-    // 4. Save the AI assistant's complete response along with citations as JSONB
+    // 4. Save the AI assistant's complete response along with citations and confidence metadata as JSONB
+    const responseMetadata = {
+      citations: response.citations || [],
+      answer_confidence: response.answer_confidence || 'good',
+      confidence_explanation: response.confidence_explanation || ''
+    };
+
     await db.query(
       'INSERT INTO messages (chat_session_id, role, content, citations) VALUES ($1, $2, $3, $4)',
-      [sessionId, 'assistant', response.answer, JSON.stringify(response.citations || [])]
+      [sessionId, 'assistant', response.answer, JSON.stringify(responseMetadata)]
     );
 
-    res.write(`data: ${JSON.stringify({ type: 'done', answer: response.answer, citations: response.citations })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'done', answer: response.answer, citations: response.citations, answer_confidence: response.answer_confidence, confidence_explanation: response.confidence_explanation })}\n\n`);
     res.end();
   } catch (error) {
     console.error('Error during chat generation:', error);

@@ -22,11 +22,17 @@ async function init() {
         file_path_or_url TEXT NOT NULL,
         indexing_status VARCHAR(50) DEFAULT 'pending',
         error_message TEXT,
+        quality_score VARCHAR(30) DEFAULT 'good',
+        quality_reason TEXT,
+        indexing_summary JSONB DEFAULT NULL,
         metadata JSONB DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       
       ALTER TABLE sources ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT NULL;
+      ALTER TABLE sources ADD COLUMN IF NOT EXISTS quality_score VARCHAR(30) DEFAULT 'good';
+      ALTER TABLE sources ADD COLUMN IF NOT EXISTS quality_reason TEXT;
+      ALTER TABLE sources ADD COLUMN IF NOT EXISTS indexing_summary JSONB DEFAULT NULL;
       
       CREATE TABLE IF NOT EXISTS chat_sessions (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

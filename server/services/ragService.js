@@ -122,9 +122,9 @@ async function executeMultiStageRetrieval(query, sources, routerSelectedIds, not
  * Unified Retrieval Pipeline reused by Chat, Study Hub Questions, Roadmaps, etc.
  */
 export async function retrieveContext(notebookId, query, queryVector = null, limit = 8) {
-  // 1. Fetch source summaries from PostgreSQL
+  // 1. Fetch source summaries and quality ratings from PostgreSQL
   const sourcesResult = await db.query(
-    "SELECT id, title, type, file_path_or_url, metadata FROM sources WHERE notebook_id = $1 AND indexing_status = 'ready'",
+    "SELECT id, title, type, file_path_or_url, metadata, quality_score, quality_reason, indexing_summary FROM sources WHERE notebook_id = $1 AND indexing_status = 'ready'",
     [notebookId]
   );
 
@@ -135,6 +135,8 @@ export async function retrieveContext(notebookId, query, queryVector = null, lim
     return {
       searchResults: [],
       citations: [],
+      answer_confidence: 'limited',
+      confidence_explanation: 'There are no ready sources available in this notebook yet.',
       routing: {
         decision: "out_of_scope",
         explanation: "There are no uploaded sources ready in this notebook yet. Please add a document or URL first!"
@@ -150,6 +152,8 @@ export async function retrieveContext(notebookId, query, queryVector = null, lim
     return {
       searchResults: [],
       citations: [],
+      answer_confidence: 'limited',
+      confidence_explanation: routing.explanation || 'Question is out of scope or combines unrelated topics.',
       routing
     };
   }
@@ -157,10 +161,10 @@ export async function retrieveContext(notebookId, query, queryVector = null, lim
   // 3. Embed the user query if not already embedded
   const vector = queryVector || await generateQueryEmbedding(query);
 
-  // 4. Run Multi-Stage Retrieval Strategy: Title match -> Chapter match -> Metadata Search -> Semantic & Cross-Video Retrieval
+  // 4. Run Multi-Stage Retrieval Strategy
   const searchResults = await executeMultiStageRetrieval(query, sources, routing.selected_source_ids, notebookId, vector, limit);
 
-  // 5. Map enriched citations for frontend inspection
+  // 5. Map enriched citations for frontend inspection with Quality Ratings
   const citations = searchResults.map((result, index) => {
     const srcData = sourceMap.get(result.payload.source_id) || {};
     let urlOrPath = srcData.file_path_or_url || '';
@@ -173,15 +177,40 @@ export async function retrieveContext(notebookId, query, queryVector = null, lim
       source_id: result.payload.source_id,
       source_title: result.payload.source_title,
       source_type: srcData.type || 'text',
+      quality_score: srcData.quality_score || 'good',
+      quality_reason: srcData.quality_reason || '',
       url_or_path: urlOrPath,
       chunk_index: result.payload.chunk_index || 0,
       text_snippet: result.payload.original_text
     };
   });
 
+  // Calculate Answer Confidence based on the quality of retrieved sources
+  let answerConfidence = 'good';
+  let confidenceExplanation = 'Answer generated using complete extracted source content.';
+
+  if (citations.length > 0) {
+    const qualityScores = citations.map(c => c.quality_score);
+    if (qualityScores.includes('limited')) {
+      answerConfidence = 'limited';
+      confidenceExplanation = 'One or more cited sources relied on video metadata only because closed captions were unavailable on YouTube.';
+    } else if (qualityScores.every(q => q === 'excellent')) {
+      answerConfidence = 'excellent';
+      confidenceExplanation = 'All cited sources contain complete transcripts, timestamps, and structured metadata.';
+    } else if (qualityScores.includes('good') || qualityScores.includes('excellent')) {
+      answerConfidence = 'good';
+      confidenceExplanation = 'Answer grounded in extracted transcript/document text from your uploaded sources.';
+    } else {
+      answerConfidence = 'fair';
+      confidenceExplanation = 'Answer generated using partial or short content snippets.';
+    }
+  }
+
   return {
     searchResults,
     citations,
+    answer_confidence: answerConfidence,
+    confidence_explanation: confidenceExplanation,
     routing
   };
 }
@@ -189,31 +218,35 @@ export async function retrieveContext(notebookId, query, queryVector = null, lim
 export async function askQuestionStream(notebookId, query, onToken = null, onMetadata = null) {
   // Call unified retrieval pipeline
   const queryVector = await generateQueryEmbedding(query);
-  const { searchResults, citations, routing } = await retrieveContext(notebookId, query, queryVector, 8);
+  const { searchResults, citations, answer_confidence, confidence_explanation, routing } = await retrieveContext(notebookId, query, queryVector, 8);
 
   // Handle routing short-circuits
   if (routing.decision === 'unrelated_combination' || routing.decision === 'out_of_scope') {
     const text = routing.explanation || "Your question combines unrelated concepts or asks about topics not covered by this notebook's sources.";
-    if (onMetadata) onMetadata([]);
+    if (onMetadata) onMetadata([], 'limited', text);
     if (onToken) onToken(text);
     return {
       answer: text,
-      citations: []
+      citations: [],
+      answer_confidence: 'limited',
+      confidence_explanation: text
     };
   }
 
   // If no context found in the selected sources
   if (searchResults.length === 0) {
     const noCtxMsg = "I couldn't find any relevant information in this notebook's sources.";
-    if (onMetadata) onMetadata([]);
+    if (onMetadata) onMetadata([], 'limited', noCtxMsg);
     if (onToken) onToken(noCtxMsg);
     return {
       answer: noCtxMsg,
-      citations: []
+      citations: [],
+      answer_confidence: 'limited',
+      confidence_explanation: noCtxMsg
     };
   }
 
-  if (onMetadata) onMetadata(citations);
+  if (onMetadata) onMetadata(citations, answer_confidence, confidence_explanation);
 
   // Build Prompt
   const prompt = buildRagPrompt(query, searchResults);
@@ -238,7 +271,9 @@ export async function askQuestionStream(notebookId, query, onToken = null, onMet
 
   return {
     answer,
-    citations
+    citations,
+    answer_confidence,
+    confidence_explanation
   };
 }
 

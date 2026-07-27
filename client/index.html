@@ -81,16 +81,40 @@
     <!-- Main Application Container -->
     <main class="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
         <!-- Empty State (When no notebook selected) -->
-        <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-center p-6">
-            <div class="w-20 h-20 mb-6 rounded-2xl bg-gradient-to-tr from-indigo-500/10 via-purple-500/10 to-blue-500/10 border border-indigo-500/20 flex items-center justify-center text-4xl shadow-xl shadow-indigo-500/5 animate-bounce-slow">
+        <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-center p-6 pt-20 md:pt-6">
+            <!-- Mobile Header Bar for Empty State -->
+            <div class="md:hidden absolute top-0 left-0 right-0 p-3.5 sm:p-4 border-b border-slate-800 bg-slate-900 text-white flex justify-between items-center z-20 shadow-md">
+                <div class="flex items-center gap-2.5">
+                    <button id="empty-mobile-sidebar-toggle" class="p-2 text-slate-300 hover:text-white rounded-lg bg-slate-800 border border-slate-700 shadow-sm flex items-center justify-center" title="Toggle Sidebar Menu">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 via-purple-500 to-blue-500 flex items-center justify-center text-white shadow-md text-sm">📚</div>
+                        <h1 class="text-lg font-extrabold font-heading tracking-tight text-white">BookLLM</h1>
+                    </div>
+                </div>
+                <button id="empty-create-notebook-top-btn" class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg px-3 py-1.5 text-xs font-bold shadow-md flex items-center gap-1">
+                    <span>➕</span> New Notebook
+                </button>
+            </div>
+
+            <div class="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 rounded-2xl bg-gradient-to-tr from-indigo-500/10 via-purple-500/10 to-blue-500/10 border border-indigo-500/20 flex items-center justify-center text-3xl sm:text-4xl shadow-xl shadow-indigo-500/5 animate-bounce-slow">
                 ✨
             </div>
-            <h3 class="text-2xl font-bold font-heading text-slate-800 tracking-tight">Select or Create a Notebook</h3>
-            <p class="text-slate-500 max-w-md mt-2 text-sm leading-relaxed">
+            <h3 class="text-xl sm:text-2xl font-bold font-heading text-slate-800 tracking-tight">Select or Create a Notebook</h3>
+            <p class="text-slate-500 max-w-md mt-2 text-xs sm:text-sm leading-relaxed px-2">
                 Experience advanced RAG question answering and generate interactive study flashcards directly from your uploaded PDFs, TXT, SRT/VTT subtitle files, URLs, and YouTube lectures.
             </p>
-            <div class="mt-6 flex items-center gap-2 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3.5 py-2 rounded-full border border-indigo-200 shadow-sm">
-                <span>💡 Tip:</span> Click the <strong>+</strong> icon in the sidebar to start!
+            <div class="mt-6 flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs sm:max-w-none justify-center">
+                <button id="empty-create-notebook-btn" class="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md shadow-indigo-500/20 transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <span>➕</span> Create New Notebook
+                </button>
+                <button id="empty-open-sidebar-btn" class="w-full sm:w-auto md:hidden bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md border border-slate-700 transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <span>📁</span> View Notebooks Menu
+                </button>
+            </div>
+            <div class="mt-6 flex items-center gap-2 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3.5 py-2 rounded-full border border-indigo-200 shadow-sm cursor-pointer hover:bg-indigo-100 transition" id="empty-tip-badge">
+                <span>💡 Tip:</span> Tap <strong>+ New Notebook</strong> above or open the sidebar menu!
             </div>
         </div>
 
@@ -144,6 +168,14 @@
                                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                             </svg>
                         </button>
+                    </div>
+
+                    <!-- Source Quality Transparency Disclaimer -->
+                    <div class="mt-2.5 px-3 py-2 bg-indigo-50/70 border border-indigo-100 rounded-xl text-[11px] text-slate-600 flex items-start gap-2 shadow-xs">
+                        <span class="text-indigo-600 text-sm shrink-0">🛡️</span>
+                        <p class="leading-relaxed">
+                            <strong>Source Quality Disclaimer:</strong> Responses are generated strictly from information extracted and indexed from your sources. Sources with complete transcripts, timestamps, and structured metadata produce the most accurate answers. For important details, verify against cited sources.
+                        </p>
                     </div>
                 </div>
 
@@ -388,6 +420,81 @@
                 <button id="dialog-btn-submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95 cursor-pointer">
                     Confirm
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Source Details & Processing Timeline Modal -->
+    <div id="source-details-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center z-50 p-4 animate-fade-in">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 text-slate-800">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3 min-w-0 pr-4">
+                    <span id="sd-type-icon" class="text-2xl">📚</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span id="sd-quality-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 Excellent Quality</span>
+                            <span id="sd-type-badge" class="text-[10px] font-bold text-slate-400 uppercase">YouTube Video</span>
+                        </div>
+                        <h3 id="sd-title" class="text-base sm:text-lg font-bold text-white truncate">Source Title Details</h3>
+                    </div>
+                </div>
+                <button id="sd-close-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-red-600/80 text-slate-300 hover:text-white flex items-center justify-center font-bold text-lg leading-none transition cursor-pointer">&times;</button>
+            </div>
+
+            <!-- Modal Scrollable Content -->
+            <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1 bg-slate-50/50">
+                <!-- Quality Explanation Callout -->
+                <div id="sd-reason-box" class="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-100 flex items-start gap-3 text-sm">
+                    <span class="text-xl shrink-0">💡</span>
+                    <div>
+                        <h4 class="font-bold text-indigo-950 text-xs uppercase tracking-wider mb-0.5">Indexing Quality Assessment</h4>
+                        <p id="sd-reason-text" class="text-slate-700 leading-relaxed text-xs sm:text-sm">Quality explanation goes here...</p>
+                    </div>
+                </div>
+
+                <!-- Granular Indexing Metrics Grid -->
+                <div>
+                    <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                        <span>📊</span> Extracted Metadata & Indexing Summary
+                    </h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-[10px] font-bold uppercase text-slate-400">Transcript Status</div>
+                            <div id="sd-metric-transcript-status" class="text-xs font-bold text-slate-800 mt-0.5">Extracted</div>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-[10px] font-bold uppercase text-slate-400">Language & Captions</div>
+                            <div id="sd-metric-captions" class="text-xs font-bold text-slate-800 mt-0.5">English (Manual)</div>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-[10px] font-bold uppercase text-slate-400">Characters Indexed</div>
+                            <div id="sd-metric-chars" class="text-xs font-bold text-slate-800 mt-0.5">4,850 chars</div>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-[10px] font-bold uppercase text-slate-400">Chunks Created</div>
+                            <div id="sd-metric-chunks" class="text-xs font-bold text-slate-800 mt-0.5">8 Chunks</div>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-[10px] font-bold uppercase text-slate-400">Qdrant Vectors</div>
+                            <div id="sd-metric-vectors" class="text-xs font-bold text-slate-800 mt-0.5">8 Vectors</div>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                            <div class="text-[10px] font-bold uppercase text-slate-400">Timestamps & Features</div>
+                            <div id="sd-metric-features" class="text-xs font-bold text-slate-800 mt-0.5">Timestamps + Chapters</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing Timeline -->
+                <div>
+                    <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                        <span>⚡</span> Step-by-Step Processing Timeline
+                    </h4>
+                    <div id="sd-timeline" class="space-y-2 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <!-- Populated by ui.js -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
